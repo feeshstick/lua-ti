@@ -5,6 +5,7 @@ import {BlockContainer} from "./nodes/meta/block-container.js";
 import {SymbolTable} from "../table/symbol-table.js";
 import {SourceFileContainer} from "./nodes/meta/source-file-container.js";
 import {ChunkContainer} from "./nodes/meta/chunk-container.js";
+import {SymbolTable2} from "../table/symbol-table-2.js";
 
 export abstract class AbstractContainer<T> {
     private static idCounter = 0
@@ -17,17 +18,65 @@ export abstract class AbstractContainer<T> {
     }
 }
 
+export enum ContainerFlag {
+    None,
+    StaticDeclaration,
+    ScopeDeclaration,
+    StaticFunctionDeclaration,
+    ScopeFunctionDeclaration,
+    Call,
+    ParameterDeclaration,
+    ArgumentExpression,
+}
+
+export function isDeclarationFlag(flag: ContainerFlag) {
+    return flag === ContainerFlag.StaticDeclaration
+        || flag === ContainerFlag.ScopeDeclaration
+        || flag === ContainerFlag.StaticFunctionDeclaration
+        || flag === ContainerFlag.ScopeFunctionDeclaration
+        || flag === ContainerFlag.ParameterDeclaration
+}
+
+export function isFunctionDeclaration(flag: ContainerFlag) {
+    return flag === ContainerFlag.StaticFunctionDeclaration
+        || flag === ContainerFlag.ScopeFunctionDeclaration
+}
+
+export function isScopeFlag(flag: ContainerFlag) {
+    return flag === ContainerFlag.ScopeDeclaration
+        || flag === ContainerFlag.ScopeFunctionDeclaration
+        || flag === ContainerFlag.ParameterDeclaration
+}
+
+export function isParameterDeclarationFlag(flag: ContainerFlag){
+    return flag === ContainerFlag.ParameterDeclaration
+}
+
+export function isCall(flag: ContainerFlag) {
+    return flag === ContainerFlag.Call
+}
+
 export abstract class BaseContainer<NKind extends NodeKind> extends AbstractContainer<NKind> {
     public _stopPropagation: boolean = false
     public abstract readonly kind: NKind
     public abstract readonly node: NodeRef<NKind extends ExtendedNode['type'] ? ExtendedNode['type'] : never>
     public abstract parent: Container | undefined
     public block?: BlockContainer
+    public readonly _flags: string[] = []
+    public flag: ContainerFlag = ContainerFlag.None
     
     protected constructor(
         scope: Scope
     ) {
         super(scope)
+    }
+    
+    /**
+     * @deprecated
+     * @param flag
+     */
+    deprSetFlag(flag: string) {
+        this._flags.push(flag)
     }
     
     get errLoc() {
@@ -74,6 +123,20 @@ export abstract class BaseContainer<NKind extends NodeKind> extends AbstractCont
             return this as unknown as E
         } else {
             return this.parent?.find(kind)
+        }
+    }
+    
+    get __table(): SymbolTable2 {
+        if (this.kind === NodeKind.SourceFile) {
+            return (this as unknown as SourceFileContainer).getGlobalTable()
+        } else if (this.block) {
+            return this.block.getLocalTable()
+        } else {
+            if (this.parent) {
+                return this.parent.__table
+            } else {
+                throw new Error()
+            }
         }
     }
     
