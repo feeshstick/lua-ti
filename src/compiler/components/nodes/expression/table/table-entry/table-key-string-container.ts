@@ -3,6 +3,7 @@ import {IdentifierContainer} from "../../literal/identifier-container.js";
 import {BaseContainer} from "../../../../base-container.js";
 import {Scope} from "../../../../../scope/scope.js";
 import {Container, createContainer, ExpressionContainer, NodeKind} from "../../../../types.js";
+import {TableConstructorExpressionContainer} from "../table-constructor-expression-container.js";
 
 export class TableKeyStringContainer extends BaseContainer<NodeKind.TableKeyString> {
     public readonly key: IdentifierContainer
@@ -11,7 +12,7 @@ export class TableKeyStringContainer extends BaseContainer<NodeKind.TableKeyStri
     
     constructor(
         public readonly node: TableKeyString,
-        public readonly parent: Container,
+        public readonly parent: TableConstructorExpressionContainer,
         scope: Scope) {
         super(scope);
         this.key = createContainer(node.key, this, this.scope) as IdentifierContainer

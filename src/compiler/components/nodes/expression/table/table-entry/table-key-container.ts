@@ -1,7 +1,8 @@
 import {TableKey} from "luaparse/lib/ast.js";
 import {BaseContainer} from "../../../../base-container.js";
 import {Scope} from "../../../../../scope/scope.js";
-import {Container, createContainer, ExpressionContainer, NodeKind} from "../../../../types.js";
+import {createContainer, ExpressionContainer, NodeKind} from "../../../../types.js";
+import {TableConstructorExpressionContainer} from "../table-constructor-expression-container.js";
 
 export class TableKeyContainer extends BaseContainer<NodeKind.TableKey> {
     public readonly key: ExpressionContainer
@@ -10,7 +11,7 @@ export class TableKeyContainer extends BaseContainer<NodeKind.TableKey> {
     
     constructor(
         public readonly node: TableKey,
-        public readonly parent: Container,
+        public readonly parent: TableConstructorExpressionContainer,
         scope: Scope) {
         super(scope);
         this.key = createContainer(node.key, this, this.scope) as ExpressionContainer
