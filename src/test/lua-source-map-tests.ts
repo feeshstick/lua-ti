@@ -1,6 +1,6 @@
 export const luaSourceMapTest = {
     //language=lua
-    'locals':`
+    'locals': `
         local a = 5
         do
             local a = "1"
@@ -8,7 +8,7 @@ export const luaSourceMapTest = {
         local b = function () end
     `,
     //language=lua
-    'functions':`
+    'functions': `
         Duel = {}
         function Duel.Print(text)
             print(text)

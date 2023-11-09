@@ -3,6 +3,7 @@ import {CallExpressionContainer} from "../components/nodes/expression/call-expre
 import {IdentifierContainer} from "../components/nodes/expression/literal/identifier-container.js";
 import {VarargLiteralContainer} from "../components/nodes/expression/literal/vararg-literal-container.js";
 import {FunctionExpressionContainer} from "../components/nodes/expression/function-expression-container.js";
+import {ReturnStatementContainer} from "../components/nodes/statement/return-statement-container.js";
 
 export type ObjectMap<E> = { [key: string | number]: E }
 
@@ -19,8 +20,10 @@ interface AbstractSymbol<E extends LSymbolTableKind> {
 export interface AbstractSymbolTable<E extends LSymbolTableKind> extends AbstractSymbol<E> {
     parent: SymbolTable | undefined
     kind: E
+    name?: string
     member: ObjectMap<Variable>
     parameter: ObjectMap<Variable>
+    semi: ObjectMap<Variable>
     
     lookup<Err extends Error>(name: string, err: Err): Variable
     
@@ -28,7 +31,11 @@ export interface AbstractSymbolTable<E extends LSymbolTableKind> extends Abstrac
     
     enter<Err extends Error>(name: string, table: Variable, err: Err): Variable
     
-    setParameter<Err>(name: string, table: Variable, err?: Err)
+    enterParameter<Err>(name: string, table: Variable, err?: Err): Variable
+    
+    enterSemi<Err>(name: string, table: Variable, err?: Err): Variable
+    
+    create(): LocalTable
     
     global: SymbolTable
 }
@@ -45,12 +52,12 @@ export type SymbolTable = LocalTable | GlobalTable
 
 export interface CallArgument {
     symbol: Variable
-    declarations: Array<Container>
+    declaration: ExpressionContainer
 }
 
 export interface Call {
     arguments: Array<CallArgument>
-    declarations: Array<CallExpressionContainer>
+    declaration: CallExpressionContainer
     returns: Variable
 }
 
@@ -60,9 +67,13 @@ export interface SignatureParameter {
 }
 
 export interface FunctionSignature {
-    symbolTable: SymbolTable
+    functionBodyTable: SymbolTable
     parameter: Array<SignatureParameter>
     declarations: Array<FunctionExpressionContainer>
+    returns: Array<{
+        declaration: ReturnStatementContainer,
+        arguments: Variable[]
+    }>
 }
 
 export interface Variable extends AbstractSymbol<LSymbolTableKind.Variable> {
@@ -72,7 +83,7 @@ export interface Variable extends AbstractSymbol<LSymbolTableKind.Variable> {
     declarations: Array<Container>
     member: ObjectMap<Variable>
     calls: Array<Call>
-    signatureDeclaration?: FunctionSignature
+    functionSignature?: FunctionSignature
     offset?: number
 }
 
@@ -84,6 +95,20 @@ export enum SymbolFlag {
     EqualityBinaryExpression,
     LogicalOr,
     LogicalAnd,
+    StringLiteral,
+    NilLiteral,
+    NumberLiteral,
+    BoolLiteral,
+    String,
+    Nil,
+    Number,
+    Bool,
+    VarargLiteral,
+    Function,
+    IndexPair,
+    ValuePair,
+    KeyPair,
+    TypeOf,
 }
 
 export type BinaryExpressionSymbolFlag =
@@ -121,9 +146,13 @@ export function createVariable(container: Container, name?: string): Variable {
         declarations: [container],
         name: name,
         calls: [],
-        signatureDeclaration: undefined,
+        functionSignature: undefined,
         offset: undefined
     }
+}
+
+export function createHiddenVariable(name?: string): Variable {
+    return createVariable(undefined as unknown as Container)
 }
 
 export function createTable(): GlobalTable
@@ -141,6 +170,10 @@ export function createTable(parent?: SymbolTable): SymbolTable {
             parent: parent,
             member: {},
             parameter: {},
+            semi: {},
+            create(): LocalTable {
+                return createTable(this as LocalTable)
+            },
             has(name: string): boolean {
                 return !!this.parameter[name] || !!this.member[name] || this.parent?.has(name)
             },
@@ -152,19 +185,32 @@ export function createTable(parent?: SymbolTable): SymbolTable {
                     return table
                 }
             },
-            setParameter<Err>(name: string, parameter: Variable, err?: Err) {
+            enterSemi<Err>(name: string, semi: Variable, err?: Err) {
+                if (this.semi[name]) {
+                    if (err) {
+                        throw err
+                    }
+                } else {
+                    this.semi[name] = semi
+                }
+                return semi
+            },
+            enterParameter<Err>(name: string, parameter: Variable, err?: Err) {
                 if (this.parameter[name]) {
                     if (err) {
                         throw err
                     }
                 } else {
-                    parameter.offset = Object.keys(parameter).length
+                    parameter.offset = Object.keys(this.parameter).length
                     this.parameter[name] = parameter
                 }
+                return parameter
             },
             lookup<Err extends Error>(name: string, err: Err): Variable {
                 if (this.parameter[name]) {
                     return this.parameter[name]
+                } else if (this.semi[name]) {
+                    return this.semi[name]
                 } else if (this.member[name]) {
                     return this.member[name]
                 } else if (this.parent) {
@@ -173,7 +219,7 @@ export function createTable(parent?: SymbolTable): SymbolTable {
                     throw err
                 }
             },
-            get global() {
+            get global(): GlobalTable {
                 if (this.kind === LSymbolTableKind.GlobalEnvironment) {
                     return this as GlobalTable
                 } else {

@@ -27,6 +27,7 @@ export enum ContainerFlag {
     Parameter = (1 << 5) | Local,
     Call = 1 << 6,
     Argument = 1 << 7,
+    Semi = 1 << 8,
     
     DeclareGlobal = Global | Declaration,
     DeclareLocal = Local | Declaration,
@@ -61,6 +62,10 @@ export function isLocalFlag(flag: ContainerFlag) {
 
 export function isParameterDeclarationFlag(flag: ContainerFlag) {
     return (flag & ContainerFlag.Parameter) === ContainerFlag.Parameter
+}
+
+export function isSemiDeclarationFlag(flag: ContainerFlag) {
+    return (flag & ContainerFlag.Semi) === ContainerFlag.Semi
 }
 
 export function isResolveFlag(flag: ContainerFlag) {
@@ -144,8 +149,8 @@ export abstract class BaseContainer<NKind extends NodeKind> extends AbstractCont
     get __table(): SymbolTable {
         if (this.kind === NodeKind.SourceFile) {
             return (this as unknown as SourceFileContainer).getGlobalTable()
-        } else if (this.block) {
-            return this.block.getLocalTable()
+        } else if (this.kind === NodeKind.Block) {
+            return (this as unknown as BlockContainer).getLocalTable()
         } else {
             if (this.parent) {
                 return this.parent.__table

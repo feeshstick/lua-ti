@@ -15,6 +15,7 @@ export class BlockContainer extends BaseContainer<NodeKind.Block> {
     ) {
         super(scope)
         this.localTable = createTable(this.parent.__table)
+        this.localTable.name = this.parent.kind + ' ' + this.parent.id
         this.statements = this.node.statements.map(statement => createContainer(statement, this, this.scope) as StatementContainer)
     }
     

@@ -2,7 +2,7 @@ import {TableKeyString} from "luaparse/lib/ast.js";
 import {IdentifierContainer} from "../../literal/identifier-container.js";
 import {BaseContainer} from "../../../../base-container.js";
 import {Scope} from "../../../../../scope/scope.js";
-import {Container, createContainer, ExpressionContainer, NodeKind} from "../../../../types.js";
+import {createContainer, ExpressionContainer, NodeKind} from "../../../../types.js";
 import {TableConstructorExpressionContainer} from "../table-constructor-expression-container.js";
 
 export class TableKeyStringContainer extends BaseContainer<NodeKind.TableKeyString> {

@@ -1,25 +1,36 @@
-
-SUMMON_TYPE_LINK = 0x4c000000
-MATERIAL_LINK = 0x8<<32
-CATEGORY_DAMAGE = 0x80000
-EFFECT_FLAG_PLAYER_TARGET = 0x800
-EFFECT_TYPE_TRIGGER_F = 0x200
-EFFECT_TYPE_SINGLE = 0x200
-EVENT_DESTROYED = 1029
-
-function Link.ConditionFilter(c,f,lc,tp)
-	return c:IsCanBeLinkMaterial(lc,tp) and (not f or f(c,lc,SUMMON_TYPE_LINK|MATERIAL_LINK,tp))
+Duel={}
+function maplevel(lvl)
 end
-
-function GetID()
-    return {},0
+function Auxiliary.NormalSummonCondition1(min,max,f,opt)
+	return function (e,c,minc,zone,relzone,exeff)
+		if c==nil then return true end
+		local tp=c:GetControler()
+		local mg=Duel.GetTributeGroup(c):Match(Auxiliary.IsZone,nil,relzone,tp)
+		if f then
+			mg:Match(f,nil,tp)
+		end
+		local tributes=maplevel(c:GetLevel())
+		return (not opt or (tributes>0 and tributes~=max)) and minc<=min and Duel.CheckTribute(c,min,max,mg,tp,zone)
+	end
 end
+Auxiliary.NormalSummonCondition1(1,2,function () return true end,nil)
+Auxiliary.NormalSummonCondition1(1,4,function (test) return false end,"hello")
 
-function Effect.CreateEffect(c)
-    return {}
-end
-
-function apply()
-   local s,id=GetID()
-   s.listed_series={0x12c}
+local function cost_replace_getvalideffs(replacecode,extracon,e,tp,eg,ep,ev,re,r,rp,chk)
+	local t={}
+	for _,eff in ipairs({Duel.GetPlayerEffect(tp,replacecode)}) do
+		if eff:CheckCountLimit(tp) then
+		local val=eff:GetValue()
+			if type(val)=="number" then
+				if val==1 then
+					table.insert(t,eff)
+				end
+			elseif type(val)=="function" then
+				if val(eff,e,tp,eg,ep,ev,re,r,rp,chk,extracon) then
+					table.insert(t,eff)
+				end
+			end
+		end
+	end
+	return t
 end

@@ -9,13 +9,18 @@ export enum LuaTiErrorKind {
 
 export class LuaTiError extends Error {
     constructor(
-        private readonly _kind: LuaTiErrorKind,
-        private readonly _message: string
+        public readonly _kind: LuaTiErrorKind,
+        public readonly _message: string
     ) {
         super();
     }
-    static noEntry(target: ExpressionContainer): LuaTiError {
-        return new LuaTiError(LuaTiErrorKind.Internal, `tried to access undefined entry of expression $${target.id}\n${target.text}`)
+    
+    static noEntry(target: ExpressionContainer, message?: string): LuaTiError {
+        return new LuaTiError(LuaTiErrorKind.Internal, `tried to access undefined entry of expression $${target.id} ${target.text} ${message}`)
+    }
+    
+    static noVarargs(message?: string): LuaTiError {
+        return new LuaTiError(LuaTiErrorKind.Syntax, `tried to access undefined entry of expression ${message}`)
     }
     
     static illegalParameterDeclaration(): LuaTiError {
@@ -31,10 +36,10 @@ export class LuaTiError extends Error {
     }
     
     static duplicateDeclaration(previous: Variable, current: Variable) {
-        return new LuaTiError(LuaTiErrorKind.Syntax, `previous=[${previous.declarations.map(x => x.text).join(',')}], current=[${current.declarations.map(x => x.text).join(', ')}]`)
+        return new LuaTiError(LuaTiErrorKind.Syntax, `previous=[${previous?.declarations.map(x => x.text).join(',')}], current=[${current?.declarations.map(x => x.text).join(', ')}]`)
     }
     
-    static cannotFindName(ident: IdentifierContainer) {
-        return new LuaTiError(LuaTiErrorKind.Syntax, `cannot find name '${ident.name}'`);
+    static cannotFindName(ident: IdentifierContainer, message?: string) {
+        return new LuaTiError(LuaTiErrorKind.Syntax, `cannot find name '${ident.name}' ${message}`);
     }
 }

@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "@ts-morph/bootstrap": "^0.21.0",
+    "circular-json": "^0.5.9",
     "node-html-parser": "^6.1.10",
     "ntypescript": "^1.201706190042.1",
     "ts-morph": "^20.0.0"

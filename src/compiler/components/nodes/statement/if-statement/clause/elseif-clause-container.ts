@@ -1,7 +1,7 @@
 import {ElseifClause} from "luaparse/lib/ast.js";
 import {BaseContainer} from "../../../../base-container.js";
 import {Scope} from "../../../../../scope/scope.js";
-import {BlockStatement, Container, createContainer, ExpressionContainer, NodeKind} from "../../../../types.js";
+import {BlockStatement, createContainer, ExpressionContainer, NodeKind} from "../../../../types.js";
 import {BlockContainer} from "../../../meta/block-container.js";
 import {IfStatementContainer} from "../if-statement-container.js";
 
