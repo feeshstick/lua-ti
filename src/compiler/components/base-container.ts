@@ -18,41 +18,57 @@ export abstract class AbstractContainer<T> {
 }
 
 export enum ContainerFlag {
-    None,
-    StaticDeclaration,
-    ScopeDeclaration,
-    StaticFunctionDeclaration,
-    ScopeFunctionDeclaration,
-    Call,
-    ParameterDeclaration,
-    ArgumentExpression,
+    None = 0,
+    Declaration = 1,
+    Global = 1 << 1,
+    Local = 1 << 2,
+    Resolve = 1 << 3,
+    Function = 1 << 4,
+    Parameter = (1 << 5) | Local,
+    Call = 1 << 6,
+    Argument = 1 << 7,
+    
+    DeclareGlobal = Global | Declaration,
+    DeclareLocal = Local | Declaration,
+    DeclareOrResolveGlobal = Global | Declaration | Resolve,
+    DeclareOrResolveLocal = Local | Declaration | Resolve,
 }
 
+/**
+ * 0000 0000 0000 0000
+ *            CPF RLGD
+ * D allow Declaration
+ * G Global Scope Flag
+ * L Local Scope Flag
+ * R allow Resolve
+ * F Function Flag
+ * P Parameter Flag
+ * C Call Flag
+ * A Argument Flag
+ */
+
 export function isDeclarationFlag(flag: ContainerFlag) {
-    return flag === ContainerFlag.StaticDeclaration
-        || flag === ContainerFlag.ScopeDeclaration
-        || flag === ContainerFlag.StaticFunctionDeclaration
-        || flag === ContainerFlag.ScopeFunctionDeclaration
-        || flag === ContainerFlag.ParameterDeclaration
+    return (flag & ContainerFlag.Declaration) === ContainerFlag.Declaration
 }
 
 export function isFunctionDeclaration(flag: ContainerFlag) {
-    return flag === ContainerFlag.StaticFunctionDeclaration
-        || flag === ContainerFlag.ScopeFunctionDeclaration
+    return isDeclarationFlag(flag) && (flag & ContainerFlag.Function) === ContainerFlag.Function
 }
 
-export function isScopeFlag(flag: ContainerFlag) {
-    return flag === ContainerFlag.ScopeDeclaration
-        || flag === ContainerFlag.ScopeFunctionDeclaration
-        || flag === ContainerFlag.ParameterDeclaration
+export function isLocalFlag(flag: ContainerFlag) {
+    return (flag & ContainerFlag.Local) === ContainerFlag.Local
 }
 
-export function isParameterDeclarationFlag(flag: ContainerFlag){
-    return flag === ContainerFlag.ParameterDeclaration
+export function isParameterDeclarationFlag(flag: ContainerFlag) {
+    return (flag & ContainerFlag.Parameter) === ContainerFlag.Parameter
 }
 
-export function isCall(flag: ContainerFlag) {
-    return flag === ContainerFlag.Call
+export function isResolveFlag(flag: ContainerFlag) {
+    return (flag & ContainerFlag.Resolve) === ContainerFlag.Resolve
+}
+
+export function isCallFlag(flag: ContainerFlag) {
+    return (flag & ContainerFlag.Call) === ContainerFlag.Call
 }
 
 export abstract class BaseContainer<NKind extends NodeKind> extends AbstractContainer<NKind> {

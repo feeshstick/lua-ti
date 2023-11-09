@@ -16,11 +16,6 @@ export function cli() {
         case 'types': {
             const sourceFileContainer = new SourceFileContainer({
                 type: 'SourceFile',
-                typeDeclaration: {
-                    path: 'src/test/typedef.ts',
-                    source: fs.readFileSync('src/test/typedef.ts').toString('utf-8'),
-                    name: 'typedef.ts'
-                },
                 files: [{
                     source: fs.readFileSync('src/test/test.lua').toString('utf-8'),
                     path: 'src/test/test.lua',

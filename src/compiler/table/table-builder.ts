@@ -58,10 +58,10 @@ import {CommentContainer} from "compiler/components/nodes/trivia/comment-trivia-
 import {Container, NodeKind, UnaryExpressionOperator} from "../components/types.js";
 import {
     ContainerFlag,
-    isCall,
+    isCallFlag,
     isDeclarationFlag,
-    isParameterDeclarationFlag,
-    isScopeFlag
+    isLocalFlag,
+    isParameterDeclarationFlag, isResolveFlag
 } from "../components/base-container.js";
 import {isFunction} from "rxjs/internal/util/isFunction";
 import {LuaTiError} from "../error/lua-ti-error.js";
@@ -87,14 +87,15 @@ export const tableVisitor: TableVisitor = {
     },
     [NodeKind.FunctionDeclaration]: function (node: FunctionExpressionContainer): void {
         for (let parameterElement of node.parameter) {
-            parameterElement.flag = ContainerFlag.ParameterDeclaration
+            parameterElement.flag = ContainerFlag.Parameter
             visit(parameterElement)
+            node.block.getLocalTable().setParameter(parameterElement.__symbol!.name!, parameterElement.__symbol!)
         }
         if (node.identifier) {
             if (node.isLocal) {
-                node.identifier.flag = ContainerFlag.ScopeFunctionDeclaration
+                node.identifier.flag = ContainerFlag.DeclareLocal
             } else {
-                node.identifier.flag = ContainerFlag.StaticFunctionDeclaration
+                node.identifier.flag = ContainerFlag.DeclareGlobal
             }
             visit(node.identifier)
             node.__symbol = node.identifier.__symbol
@@ -148,7 +149,7 @@ export const tableVisitor: TableVisitor = {
         for (let i = 0; i < node.variables.length; i++) {
             let variable = node.variables[i]
             let expression = node.init[i]
-            variable.flag = ContainerFlag.ScopeDeclaration
+            variable.flag = ContainerFlag.DeclareLocal
             visit(variable)
             if (expression) {
                 visit(expression)
@@ -158,7 +159,7 @@ export const tableVisitor: TableVisitor = {
     [NodeKind.AssignmentStatement]: function (node: AssignmentStatementContainer): void {
         for (let i = 0; i < node.variables.length; i++) {
             let variable = node.variables[i]
-            variable.flag = ContainerFlag.StaticDeclaration
+            variable.flag = ContainerFlag.DeclareGlobal
             visit(variable)
             let expression = node.init[i]
             if (expression) {
@@ -261,7 +262,7 @@ export const tableVisitor: TableVisitor = {
     [NodeKind.CallExpression]: function (node: CallExpressionContainer): void {
         for (let i = 0; i < node.arguments.length; i++) {
             const argument = node.arguments[i]
-            argument.flag = ContainerFlag.ArgumentExpression
+            argument.flag = ContainerFlag.Argument
             visit(argument)
         }
         node.base.flag = ContainerFlag.Call
@@ -283,14 +284,16 @@ export const tableVisitor: TableVisitor = {
     [NodeKind.StringCallExpression]: function (node: StringCallExpressionContainer): void {
     },
     [NodeKind.Identifier]: function (node: IdentifierContainer): void {
-        if (isDeclarationFlag(node.flag)) {
+        if (isParameterDeclarationFlag(node.flag)) {
+            node.__symbol = createVariable(node, node.name)
+        } else if (isDeclarationFlag(node.flag)) {
             const currentDeclaration = createVariable(node, node.name)
-            if (node.__table.has(node.name)) {
+            if (node.__table.has(node.name)&&!isResolveFlag(node.flag)) {
                 const previousDeclaration = node.__table.member[node.name]
                 // add compiler options here
                 throw LuaTiError.duplicateDeclaration(previousDeclaration, currentDeclaration)
             } else {
-                if (isScopeFlag(node.flag)) {
+                if (isLocalFlag(node.flag)) {
                     if (isParameterDeclarationFlag(node.flag)) {
                         node.__table.setParameter(node.name, currentDeclaration)
                     } else {
@@ -309,12 +312,12 @@ export const tableVisitor: TableVisitor = {
     [NodeKind.MemberExpression]: function (node: MemberExpressionContainer): void {
         switch (node.indexer) {
             case ".":
-                node.base.flag = node.flag
+                node.base.flag = node.flag | ContainerFlag.Resolve
                 visit(node.base)
                 node.setEntry(addMemberToVariable(node.base, node.identifier, node.identifier.name), LuaTiError.overwriteEntry(node.base, node.identifier))
                 break;
             case ":":
-                if (isFunction(node.flag) || isCall(node.flag)) {
+                if (isFunction(node.flag) || isCallFlag(node.flag)) {
                     node.base.flag = node.flag
                     visit(node.base)
                     node.setEntry(addMemberToVariable(node.base, node.identifier, node.identifier.name), LuaTiError.overwriteEntry(node.base, node.identifier))
@@ -358,7 +361,16 @@ export const tableVisitor: TableVisitor = {
 }
 
 function visit(node: Container) {
-    tableVisitor[node.kind](node as never)
+    console.log(node.kind + ' ' + node.id)
+    try {
+        tableVisitor[node.kind](node as never)
+    } catch (e) {
+        console.error(node)
+        console.error(node.__table)
+        // @ts-ignore
+        console.error(e!._message)
+        throw e
+    }
 }
 
 export function entries<E>(obj: ObjectMap<E>): [string | number, E][] {
