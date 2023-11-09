@@ -26,9 +26,12 @@ export class MemberExpressionContainer extends AbstractExpressionContainer<NodeK
         return this.node.indexer === ':'
     }
     
+    get indexer(): MemberExpression['indexer'] {
+        return this.node.indexer
+    }
+    
     forEachChild(node: (node: ExpressionContainer) => void) {
         node(this.base)
         node(this.identifier)
     }
-    
 }

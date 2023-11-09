@@ -2,7 +2,7 @@ import {SourceFileContainer} from "../components/nodes/meta/source-file-containe
 import {
     binaryOperatorInferTypesToExpressions,
     Container,
-    ExpressionContainer,
+    isExpressionContainer,
     NodeKind,
     unaryOperatorToTypeMap
 } from "../components/types.js";
@@ -273,25 +273,6 @@ function declarationAccess(container: Container) {
     for (let ident of idents) {
         console.log(chalk.red(JSON.stringify(ident.base['_entry'] || {})))
     }
-}
-
-function isExpressionContainer(container: Container): container is ExpressionContainer {
-    return container.kind === NodeKind.Identifier
-        || container.kind === NodeKind.StringLiteral
-        || container.kind === NodeKind.NumericLiteral
-        || container.kind === NodeKind.BooleanLiteral
-        || container.kind === NodeKind.NilLiteral
-        || container.kind === NodeKind.VarargLiteral
-        || container.kind === NodeKind.TableConstructorExpression
-        || container.kind === NodeKind.BinaryExpression
-        || container.kind === NodeKind.LogicalExpression
-        || container.kind === NodeKind.UnaryExpression
-        || container.kind === NodeKind.MemberExpression
-        || container.kind === NodeKind.IndexExpression
-        || container.kind === NodeKind.CallExpression
-        || container.kind === NodeKind.TableCallExpression
-        || container.kind === NodeKind.StringCallExpression
-        || container.kind === NodeKind.FunctionDeclaration
 }
 
 /**
