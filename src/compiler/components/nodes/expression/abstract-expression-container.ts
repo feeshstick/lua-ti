@@ -1,7 +1,6 @@
 import {NodeKind} from "../../types.js";
-import {Type} from "../../../type/type-system.js";
 import {BaseContainer} from "../../base-container.js";
-import {Variable} from "../../../table/symbol-table-2.js";
+import {Variable} from "../../../table/symbol-table.js";
 
 export type ExpressionContainerKind =
     | NodeKind.Identifier
@@ -22,7 +21,6 @@ export type ExpressionContainerKind =
     | NodeKind.FunctionDeclaration
 
 export abstract class AbstractExpressionContainer<E extends ExpressionContainerKind> extends BaseContainer<E> {
-    _type: Type | undefined
     __symbol: Variable | undefined
     
     getEntry<E extends Error>(err: E) {

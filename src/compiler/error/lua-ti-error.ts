@@ -1,5 +1,5 @@
 import {ExpressionContainer} from "../components/types.js";
-import {Variable} from "../table/symbol-table-2.js";
+import {Variable} from "../table/symbol-table.js";
 import {IdentifierContainer} from "../components/nodes/expression/literal/identifier-container.js";
 
 export enum LuaTiErrorKind {

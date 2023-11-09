@@ -4,15 +4,13 @@ import {Container, NodeKind, SourceFileNode} from "../../types.js";
 import {BaseContainer} from "../../base-container.js";
 import {ChunkContainer} from "./chunk-container.js";
 import {Scope} from "../../../scope/scope.js";
-import {SymbolTable} from "../../../table/symbol-table.js";
 import {default as ts, TypeAliasDeclaration} from "typescript";
-import {createTable, GlobalTable} from "../../../table/symbol-table-2.js";
+import {createTable, GlobalTable} from "../../../table/symbol-table.js";
 
 export class SourceFileContainer extends BaseContainer<NodeKind.SourceFile> {
     parent: Container | undefined;
     public readonly kind = NodeKind.SourceFile
     public readonly chunks: ChunkContainer[] = []
-    public readonly rootSymbolTable: SymbolTable = new SymbolTable()
     public globalTable: GlobalTable = createTable()
     
     constructor(
@@ -57,7 +55,6 @@ export class SourceFileContainer extends BaseContainer<NodeKind.SourceFile> {
                 console.error('_ENV not found. must have type _ENV = {} as root type, referencing other declared types.')
                 throw new Error()
             }
-            this.rootSymbolTable.initializeEnvironment()
         }
         for (let sourceFile of node.files) {
             const ast = luaparse.parse(sourceFile.source, {

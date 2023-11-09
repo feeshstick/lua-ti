@@ -2,10 +2,9 @@ import {Scope} from "../scope/scope.js";
 import {Container, ExtendedNode, FileReference, NodeKind, NodeRef} from "./types.js";
 
 import {BlockContainer} from "./nodes/meta/block-container.js";
-import {SymbolTable} from "../table/symbol-table.js";
 import {SourceFileContainer} from "./nodes/meta/source-file-container.js";
 import {ChunkContainer} from "./nodes/meta/chunk-container.js";
-import {SymbolTable2} from "../table/symbol-table-2.js";
+import {SymbolTable} from "../table/symbol-table.js";
 
 export abstract class AbstractContainer<T> {
     private static idCounter = 0
@@ -126,7 +125,7 @@ export abstract class BaseContainer<NKind extends NodeKind> extends AbstractCont
         }
     }
     
-    get __table(): SymbolTable2 {
+    get __table(): SymbolTable {
         if (this.kind === NodeKind.SourceFile) {
             return (this as unknown as SourceFileContainer).getGlobalTable()
         } else if (this.block) {
@@ -134,20 +133,6 @@ export abstract class BaseContainer<NKind extends NodeKind> extends AbstractCont
         } else {
             if (this.parent) {
                 return this.parent.__table
-            } else {
-                throw new Error()
-            }
-        }
-    }
-    
-    get symbols(): SymbolTable {
-        if (this.kind === NodeKind.SourceFile) {
-            return (this as unknown as SourceFileContainer).rootSymbolTable
-        } else if (this.block) {
-            return this.block.symbolTable
-        } else {
-            if (this.parent) {
-                return this.parent.symbols
             } else {
                 throw new Error()
             }

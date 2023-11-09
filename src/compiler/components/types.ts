@@ -40,8 +40,6 @@ import {CommentContainer} from "./nodes/trivia/comment-trivia-container.js";
 import {ChunkContainer} from "./nodes/meta/chunk-container.js";
 import {SourceFileContainer} from "./nodes/meta/source-file-container.js";
 
-import {Primitive, Type} from "../type/type-system.js";
-
 export enum NodeKind {
     SourceFile = "SourceFile",
     Chunk = "Chunk",
@@ -303,89 +301,11 @@ export enum BinaryExpressionOperator {
     compare_ge = ">=",
 }
 
-export const binaryOperatorToTypeMap: { [A in BinaryExpressionOperator]: Type } = {
-    [BinaryExpressionOperator.add]: Primitive.Number,
-    [BinaryExpressionOperator.sub]: Primitive.Number,
-    [BinaryExpressionOperator.mul]: Primitive.Number,
-    [BinaryExpressionOperator.mod]: Primitive.Number,
-    [BinaryExpressionOperator.exp]: Primitive.Number,
-    [BinaryExpressionOperator.div]: Primitive.Number,
-    [BinaryExpressionOperator.divFloor]: Primitive.Number,
-    [BinaryExpressionOperator.xor]: Primitive.Number,
-    [BinaryExpressionOperator.shiftLeft]: Primitive.Number,
-    [BinaryExpressionOperator.shiftRight]: Primitive.Number,
-    [BinaryExpressionOperator.concat]: Primitive.String,
-    [BinaryExpressionOperator.compare_ne]: Primitive.Bool,
-    [BinaryExpressionOperator.compare_eq]: Primitive.Bool,
-    [BinaryExpressionOperator.compare_lt]: Primitive.Bool,
-    [BinaryExpressionOperator.compare_le]: Primitive.Bool,
-    [BinaryExpressionOperator.compare_gt]: Primitive.Bool,
-    [BinaryExpressionOperator.compare_ge]: Primitive.Bool,
-    [BinaryExpressionOperator.and]: Primitive.Number,
-    [BinaryExpressionOperator.or]: Primitive.Number
-}
-
-function inferTypeFromArithmetic(target: BinaryExpressionContainer, left: ExpressionContainer, right: ExpressionContainer) {
-    console.warn('[WARN] : ' + inferTypeFromArithmetic.name + ' not implemented yet')
-}
-
-function inferTypeFromConcat(target: BinaryExpressionContainer, left: ExpressionContainer, right: ExpressionContainer) {
-    console.warn('[WARN] : ' + inferTypeFromConcat.name + ' not implemented yet')
-}
-
-function inferTypeFromCompare(target: BinaryExpressionContainer, left: ExpressionContainer, right: ExpressionContainer) {
-    console.warn('[WARN] : ' + inferTypeFromCompare.name + ' not implemented yet')
-}
-
-function inferTypeFromEquality(target: BinaryExpressionContainer, left: ExpressionContainer, right: ExpressionContainer) {
-    console.warn('[WARN] : ' + inferTypeFromEquality.name + ' not implemented yet')
-}
-
-export const binaryOperatorInferTypesToExpressions: {
-    [A in BinaryExpressionOperator]: (target: BinaryExpressionContainer, left: ExpressionContainer, right: ExpressionContainer) => void
-} = {
-    [BinaryExpressionOperator.add]: inferTypeFromArithmetic,
-    [BinaryExpressionOperator.sub]: inferTypeFromArithmetic,
-    [BinaryExpressionOperator.mul]: inferTypeFromArithmetic,
-    [BinaryExpressionOperator.mod]: inferTypeFromArithmetic,
-    [BinaryExpressionOperator.exp]: inferTypeFromArithmetic,
-    [BinaryExpressionOperator.div]: inferTypeFromArithmetic,
-    [BinaryExpressionOperator.divFloor]: inferTypeFromArithmetic,
-    [BinaryExpressionOperator.and]: inferTypeFromArithmetic,
-    [BinaryExpressionOperator.or]: inferTypeFromArithmetic,
-    [BinaryExpressionOperator.xor]: inferTypeFromArithmetic,
-    [BinaryExpressionOperator.shiftLeft]: inferTypeFromArithmetic,
-    [BinaryExpressionOperator.shiftRight]: inferTypeFromArithmetic,
-    [BinaryExpressionOperator.concat]: inferTypeFromConcat,
-    [BinaryExpressionOperator.compare_ne]: inferTypeFromEquality,
-    [BinaryExpressionOperator.compare_eq]: inferTypeFromEquality,
-    [BinaryExpressionOperator.compare_lt]: inferTypeFromCompare,
-    [BinaryExpressionOperator.compare_le]: inferTypeFromCompare,
-    [BinaryExpressionOperator.compare_gt]: inferTypeFromCompare,
-    [BinaryExpressionOperator.compare_ge]: inferTypeFromCompare
-}
-
 export enum UnaryExpressionOperator {
     Not = "Not",
     Length = "#",
     BitNegate = "~",
     ArithmeticNegate = "-"
-}
-
-export const unaryOperatorToTypeMap: { [A in UnaryExpressionOperator]: Type } = {
-    [UnaryExpressionOperator.Not]: Primitive.Bool,
-    [UnaryExpressionOperator.Length]: Primitive.Number,
-    [UnaryExpressionOperator.BitNegate]: Primitive.Number,
-    [UnaryExpressionOperator.ArithmeticNegate]: Primitive.Number
-}
-
-export const unaryOperatorTypeInfer: {
-    [A in UnaryExpressionOperator]: Type[]
-} = {
-    [UnaryExpressionOperator.Not]: [Primitive.Any],
-    [UnaryExpressionOperator.Length]: [Primitive.Table, Primitive.String],
-    [UnaryExpressionOperator.BitNegate]: [Primitive.Number],
-    [UnaryExpressionOperator.ArithmeticNegate]: [Primitive.Number]
 }
 
 export function isExpressionContainer(container: Container): container is ExpressionContainer {

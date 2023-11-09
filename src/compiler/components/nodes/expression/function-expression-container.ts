@@ -8,12 +8,11 @@ import {Container, createContainer, NodeKind, ParameterContainer} from "../../ty
 import {MemberExpressionContainer} from "./member-expression-container.js";
 
 import {BlockContainer} from "../meta/block-container.js";
-import {FunctionBodyTable, FunctionEntry, ParameterEntry} from "../../../table/symbol-table.js";
 import {ReturnStatementContainer} from "../statement/return-statement-container.js";
 
 export class FunctionExpressionContainer extends AbstractExpressionContainer<NodeKind.FunctionDeclaration> {
     public readonly parameter: Array<IdentifierContainer | VarargLiteralContainer>
-    public override readonly block: BlockContainer<FunctionBodyTable>
+    public override readonly block: BlockContainer
     public readonly identifier: IdentifierContainer | MemberExpressionContainer | null
     public readonly kind = NodeKind.FunctionDeclaration;
     _returns: ReturnStatementContainer[] = [];
@@ -49,14 +48,7 @@ export class FunctionExpressionContainer extends AbstractExpressionContainer<Nod
             statements: this.node.body,
             range: this.range,
             loc: this.node.loc
-        }, this, blockScope, this.symbols.createFunctionBody(new FunctionEntry(new Map(this.parameter.map((param, i) => {
-            switch (param.kind) {
-                case NodeKind.VarargLiteral:
-                    return ['...', new ParameterEntry({offset : i})]
-                case NodeKind.Identifier:
-                    return [param.name, new ParameterEntry({offset : i})]
-            }
-        })), [])))
+        }, this, blockScope)
         if (this.node.identifier) {
             this.identifier = createContainer(this.node.identifier, this, scope) as IdentifierContainer | MemberExpressionContainer
         } else {
@@ -68,7 +60,7 @@ export class FunctionExpressionContainer extends AbstractExpressionContainer<Nod
         return this.node.isLocal
     }
     
-    forEachChild(node: (node: IdentifierContainer | VarargLiteralContainer | BlockContainer<FunctionBodyTable> | MemberExpressionContainer) => void) {
+    forEachChild(node: (node: IdentifierContainer | VarargLiteralContainer | BlockContainer | MemberExpressionContainer) => void) {
         if (this.identifier) node(this.identifier)
         for (let parameterElement of this.parameter) {
             node(parameterElement)
