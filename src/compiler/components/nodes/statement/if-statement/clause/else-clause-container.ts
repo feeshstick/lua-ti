@@ -3,6 +3,7 @@ import {BaseContainer} from "../../../../base-container.js";
 import {Scope} from "../../../../../scope/scope.js";
 import {BlockStatement, Container, NodeKind} from "../../../../types.js";
 import {BlockContainer} from "../../../meta/block-container.js";
+import {IfStatementContainer} from "../if-statement-container.js";
 
 export class ElseClauseContainer extends BaseContainer<NodeKind.ElseClause> implements BlockStatement {
     public override readonly block: BlockContainer
@@ -10,7 +11,7 @@ export class ElseClauseContainer extends BaseContainer<NodeKind.ElseClause> impl
     
     constructor(
         public readonly node: ElseClause,
-        public readonly parent: Container,
+        public readonly parent: IfStatementContainer,
         scope: Scope) {
         super(scope);
         this.block = Scope.createBody(this, node.body)
