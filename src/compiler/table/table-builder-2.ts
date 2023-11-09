@@ -55,7 +55,7 @@ import {RepeatStatementContainer} from "compiler/components/nodes/statement/repe
 import {ReturnStatementContainer} from "compiler/components/nodes/statement/return-statement-container.js";
 import {WhileStatementContainer} from "compiler/components/nodes/statement/while-statement-container.js";
 import {CommentContainer} from "compiler/components/nodes/trivia/comment-trivia-container.js";
-import {binaryOperatorToTypeMap, Container, NodeKind, unaryOperatorToTypeMap} from "../components/types.js";
+import {Container, NodeKind, UnaryExpressionOperator, unaryOperatorToTypeMap} from "../components/types.js";
 import {SymbolTable} from "./symbol-table.js";
 import {Primitive} from "../type/type-system.js";
 import {
@@ -67,7 +67,18 @@ import {
 } from "../components/base-container.js";
 import {isFunction} from "rxjs/internal/util/isFunction";
 import {LuaTiError} from "../error/lua-ti-error.js";
-import {addMemberToVariable, createVariable, SymbolFlag} from "./symbol-table-2.js";
+import {
+    addMemberToVariable,
+    Call,
+    createVariable,
+    FunctionSignature,
+    hasOwnProperty,
+    ObjectMap,
+    SignatureParameter,
+    SymbolFlag,
+    SymbolTable2,
+    Variable
+} from "./symbol-table-2.js";
 
 export type TableVisitor = {
     [A in NodeKind]: (node: A extends Container['kind'] ? Extract<Container, { kind: A }> : never) => void
@@ -94,11 +105,20 @@ export const tableVisitor: TableVisitor = {
         }
         if (node.identifier) {
             if (node.isLocal) {
-                node.identifier.flag = ContainerFlag.StaticDeclaration
+                node.identifier.flag = ContainerFlag.ScopeFunctionDeclaration
             } else {
-                node.identifier.flag = ContainerFlag.ScopeDeclaration
+                node.identifier.flag = ContainerFlag.StaticFunctionDeclaration
             }
             visit(node.identifier)
+            node.__symbol = node.identifier.__symbol
+            node.__symbol!.signatureDeclaration = {
+                symbolTable: node.block.getLocalTable(),
+                parameter: node.parameter.map(x => ({
+                    symbol: x.__symbol!,
+                    declarations: [x]
+                })),
+                declarations: [node]
+            }
         } else {
             node.deprSetFlag('function expression without declaration')
         }
@@ -114,6 +134,17 @@ export const tableVisitor: TableVisitor = {
         for (let clause of node.clauses) {
             visit(clause)
         }
+    },
+    [NodeKind.IfClause]: function (node: IfClauseContainer): void {
+        visit(node.condition)
+        visit(node.block)
+    },
+    [NodeKind.ElseifClause]: function (node: ElseifClauseContainer): void {
+        visit(node.condition)
+        visit(node.block)
+    },
+    [NodeKind.ElseClause]: function (node: ElseClauseContainer): void {
+        visit(node.block)
     },
     [NodeKind.WhileStatement]: function (node: WhileStatementContainer): void {
         visit(node.condition)
@@ -150,9 +181,6 @@ export const tableVisitor: TableVisitor = {
             variable._type = expression._type
         }
     },
-    [NodeKind.CallStatement]: function (node: CallStatementContainer): void {
-        visit(node.expression)
-    },
     [NodeKind.ForNumericStatement]: function (node: ForNumericStatementContainer): void {
         visit(node.start)
         visit(node.end)
@@ -165,30 +193,6 @@ export const tableVisitor: TableVisitor = {
         }
         for (let iterator of node.iterators) {
             visit(iterator)
-        }
-    },
-    [NodeKind.Identifier]: function (node: IdentifierContainer): void {
-        if (isDeclarationFlag(node.flag)) {
-            const currentDeclaration = createVariable(node, node.name)
-            if (node.__table.has(node.name)) {
-                const previousDeclaration = node.__table.member[node.name]
-                // add compiler options here
-                throw LuaTiError.duplicateDeclaration(previousDeclaration, currentDeclaration)
-            } else {
-                if (isScopeFlag(node.flag)) {
-                    if (isParameterDeclarationFlag(node.flag)) {
-                        node.__table.setParameter(node.name, currentDeclaration)
-                    } else {
-                        node.__table.member[node.name] = currentDeclaration
-                    }
-                } else {
-                    node.__table._ENV.member[node.name] = currentDeclaration
-                }
-            }
-            node.setEntry(currentDeclaration, LuaTiError.overwriteEntryDirect(node, currentDeclaration))
-        } else {
-            node.__symbol = node.__table.lookup(node.name, LuaTiError.cannotFindName(node))
-            node.__symbol.declarations.push(node)
         }
     },
     [NodeKind.StringLiteral]: function (node: StringLiteralContainer): void {
@@ -205,13 +209,6 @@ export const tableVisitor: TableVisitor = {
     },
     [NodeKind.VarargLiteral]: function (node: VarargLiteralContainer): void {
         
-    },
-    [NodeKind.TableConstructorExpression]: function (node: TableConstructorExpressionContainer): void {
-        for (let i = 0; i < node.fields.length; i++) {
-            let field = node.fields[i];
-            field.deprSetFlag('is field at index ' + i)
-            visit(field)
-        }
     },
     [NodeKind.BinaryExpression]: function (node: BinaryExpressionContainer): void {
         node.__symbol = createVariable(node)
@@ -252,17 +249,85 @@ export const tableVisitor: TableVisitor = {
         visit(node.right)
     },
     [NodeKind.LogicalExpression]: function (node: LogicalExpressionContainer): void {
+        node.__symbol = createVariable(node)
         switch (node.operator) {
             case "or":
+                node.__symbol.flag = SymbolFlag.LogicalOr
                 break;
             case "and":
+                node.__symbol.flag = SymbolFlag.LogicalAnd
                 break;
         }
         visit(node.left)
         visit(node.right)
     },
     [NodeKind.UnaryExpression]: function (node: UnaryExpressionContainer): void {
+        node.__symbol = createVariable(node)
+        switch (node.operator) {
+            case UnaryExpressionOperator.Not:
+                node.__symbol
+                break;
+            case UnaryExpressionOperator.Length:
+                break;
+            case UnaryExpressionOperator.BitNegate:
+                node.__symbol
+                break;
+            case UnaryExpressionOperator.ArithmeticNegate:
+                break;
+        }
+        visit(node.argument)
         node._type = unaryOperatorToTypeMap[node.operator]
+    },
+    [NodeKind.CallStatement]: function (node: CallStatementContainer): void {
+        visit(node.expression)
+    },
+    [NodeKind.CallExpression]: function (node: CallExpressionContainer): void {
+        for (let i = 0; i < node.arguments.length; i++) {
+            const argument = node.arguments[i]
+            argument.flag = ContainerFlag.ArgumentExpression
+            visit(argument)
+        }
+        node.base.flag = ContainerFlag.Call
+        visit(node.base)
+        const entry = node.base.getEntry(LuaTiError.noEntry(node.base))
+        const call: Call = {
+            returns: createVariable(node),
+            declarations: [node],
+            arguments: node.arguments.map(argument => ({
+                symbol: argument.getEntry(LuaTiError.noEntry(argument)),
+                declarations: [argument]
+            }))
+        }
+        entry.calls.push(call)
+        node.__symbol = call.returns
+    },
+    [NodeKind.TableCallExpression]: function (node: TableCallExpressionContainer): void {
+    },
+    [NodeKind.StringCallExpression]: function (node: StringCallExpressionContainer): void {
+    },
+    [NodeKind.Identifier]: function (node: IdentifierContainer): void {
+        if (isDeclarationFlag(node.flag)) {
+            const currentDeclaration = createVariable(node, node.name)
+            if (node.__table.has(node.name)) {
+                const previousDeclaration = node.__table.member[node.name]
+                // add compiler options here
+                throw LuaTiError.duplicateDeclaration(previousDeclaration, currentDeclaration)
+            } else {
+                if (isScopeFlag(node.flag)) {
+                    if (isParameterDeclarationFlag(node.flag)) {
+                        node.__table.setParameter(node.name, currentDeclaration)
+                    } else {
+                        node.__table.member[node.name] = currentDeclaration
+                    }
+                } else {
+                    node.__table._ENV.member[node.name] = currentDeclaration
+                }
+            }
+            node.setEntry(currentDeclaration, LuaTiError.overwriteEntryDirect(node, currentDeclaration))
+        } else {
+            node.__symbol = node.__table.lookup(node.name, LuaTiError.cannotFindName(node))
+            node.__symbol.declarations.push(node)
+        }
     },
     [NodeKind.MemberExpression]: function (node: MemberExpressionContainer): void {
         switch (node.indexer) {
@@ -281,43 +346,18 @@ export const tableVisitor: TableVisitor = {
                 }
                 break;
         }
+        node.identifier.__symbol = node.__symbol
     },
     [NodeKind.IndexExpression]: function (node: IndexExpressionContainer): void {
         visit(node.index)
         visit(node.base)
     },
-    [NodeKind.CallExpression]: function (node: CallExpressionContainer): void {
-        for (let i = 0; i < node.arguments.length; i++) {
-            const argument = node.arguments[i]
-            argument.flag = ContainerFlag.ArgumentExpression
-            visit(argument)
+    [NodeKind.TableConstructorExpression]: function (node: TableConstructorExpressionContainer): void {
+        for (let i = 0; i < node.fields.length; i++) {
+            let field = node.fields[i];
+            field.deprSetFlag('is field at index ' + i)
+            visit(field)
         }
-        node.base.flag = ContainerFlag.Call
-        visit(node.base)
-        const entry = node.base.getEntry(LuaTiError.noEntry(node.base))
-        entry.calls.push({
-            returns: createVariable(node),
-            declarations: [node],
-            arguments: node.arguments.map(argument => ({
-                symbol: argument.getEntry(LuaTiError.noEntry(argument)),
-                declarations: [argument]
-            }))
-        })
-    },
-    [NodeKind.TableCallExpression]: function (node: TableCallExpressionContainer): void {
-    },
-    [NodeKind.StringCallExpression]: function (node: StringCallExpressionContainer): void {
-    },
-    [NodeKind.IfClause]: function (node: IfClauseContainer): void {
-        visit(node.condition)
-        visit(node.block)
-    },
-    [NodeKind.ElseifClause]: function (node: ElseifClauseContainer): void {
-        visit(node.condition)
-        visit(node.block)
-    },
-    [NodeKind.ElseClause]: function (node: ElseClauseContainer): void {
-        visit(node.block)
     },
     [NodeKind.TableKey]: function (node: TableKeyContainer): void {
         visit(node.key)
@@ -343,4 +383,8 @@ export const tableVisitor: TableVisitor = {
 function visit(node: Container) {
     console.log(node.kind + ' #' + node.id)
     tableVisitor[node.kind](node as never)
+}
+
+export function entries<E>(obj: ObjectMap<E>): [string | number, E][] {
+    return Object.keys(obj).map(x => [x, obj[x]])
 }

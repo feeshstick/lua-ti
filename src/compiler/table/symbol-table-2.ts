@@ -1,5 +1,8 @@
 import {Container, ExpressionContainer} from "../components/types.js";
 import {CallExpressionContainer} from "../components/nodes/expression/call-expression/call-expression-container.js";
+import {IdentifierContainer} from "../components/nodes/expression/literal/identifier-container.js";
+import {VarargLiteralContainer} from "../components/nodes/expression/literal/vararg-literal-container.js";
+import {FunctionExpressionContainer} from "../components/nodes/expression/function-expression-container.js";
 
 export type ObjectMap<E> = { [key: string | number]: E }
 
@@ -51,6 +54,17 @@ export interface Call {
     returns: Variable
 }
 
+export interface SignatureParameter {
+    symbol: Variable
+    declarations: Array<IdentifierContainer | VarargLiteralContainer>
+}
+
+export interface FunctionSignature {
+    symbolTable: SymbolTable2
+    parameter: Array<SignatureParameter>
+    declarations: Array<FunctionExpressionContainer>
+}
+
 export interface Variable extends AbstractSymbol<LSymbolTableKind.Variable> {
     name?: string
     kind: LSymbolTableKind.Variable
@@ -58,6 +72,7 @@ export interface Variable extends AbstractSymbol<LSymbolTableKind.Variable> {
     declarations: Array<Container>
     member: ObjectMap<Variable>
     calls: Array<Call>
+    signatureDeclaration?: FunctionSignature
     offset?: number
 }
 
@@ -67,6 +82,8 @@ export enum SymbolFlag {
     StringConcat,
     CompareBinaryExpression,
     EqualityBinaryExpression,
+    LogicalOr,
+    LogicalAnd,
 }
 
 export type BinaryExpressionSymbolFlag =
@@ -104,6 +121,7 @@ export function createVariable(container: Container, name?: string): Variable {
         declarations: [container],
         name: name,
         calls: [],
+        signatureDeclaration: undefined,
         offset: undefined
     }
 }

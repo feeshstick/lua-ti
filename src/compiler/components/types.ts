@@ -366,26 +366,26 @@ export const binaryOperatorInferTypesToExpressions: {
 }
 
 export enum UnaryExpressionOperator {
-    not = "not",
-    len = "#",
-    negate = "~",
-    negative = "-"
+    Not = "Not",
+    Length = "#",
+    BitNegate = "~",
+    ArithmeticNegate = "-"
 }
 
 export const unaryOperatorToTypeMap: { [A in UnaryExpressionOperator]: Type } = {
-    [UnaryExpressionOperator.not]: Primitive.Bool,
-    [UnaryExpressionOperator.len]: Primitive.Number,
-    [UnaryExpressionOperator.negate]: Primitive.Number,
-    [UnaryExpressionOperator.negative]: Primitive.Number
+    [UnaryExpressionOperator.Not]: Primitive.Bool,
+    [UnaryExpressionOperator.Length]: Primitive.Number,
+    [UnaryExpressionOperator.BitNegate]: Primitive.Number,
+    [UnaryExpressionOperator.ArithmeticNegate]: Primitive.Number
 }
 
 export const unaryOperatorTypeInfer: {
     [A in UnaryExpressionOperator]: Type[]
 } = {
-    [UnaryExpressionOperator.not]: [Primitive.Any],
-    [UnaryExpressionOperator.len]: [Primitive.Table, Primitive.String],
-    [UnaryExpressionOperator.negate]: [Primitive.Number],
-    [UnaryExpressionOperator.negative]: [Primitive.Number]
+    [UnaryExpressionOperator.Not]: [Primitive.Any],
+    [UnaryExpressionOperator.Length]: [Primitive.Table, Primitive.String],
+    [UnaryExpressionOperator.BitNegate]: [Primitive.Number],
+    [UnaryExpressionOperator.ArithmeticNegate]: [Primitive.Number]
 }
 
 export function isExpressionContainer(container: Container): container is ExpressionContainer {
