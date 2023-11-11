@@ -800,7 +800,6 @@ export function buildTable(sourceFile: SourceFileContainer) {
     }
     
     function visit(node: Container, context: TableVisitorContext) {
-        // console.log(node.kind + ' ' + node.id)
         try {
             context.startContainer(node)
             tableVisitor[node.kind](node as never, context)
