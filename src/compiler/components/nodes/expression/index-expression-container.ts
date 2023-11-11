@@ -16,40 +16,6 @@ export class IndexExpressionContainer extends AbstractExpressionContainer<NodeKi
         super(scope);
         this.base = createContainer(node.base, this, this.scope) as ExpressionContainer
         this.index = createContainer(node.index, this, this.scope) as ExpressionContainer
-        switch (this.base.kind){
-            case NodeKind.StringLiteral:
-                break;
-            case NodeKind.Identifier:
-                break;
-            case NodeKind.NumericLiteral:
-                break;
-            case NodeKind.BooleanLiteral:
-                break;
-            case NodeKind.NilLiteral:
-                break;
-            case NodeKind.VarargLiteral:
-                break;
-            case NodeKind.TableConstructorExpression:
-                break;
-            case NodeKind.BinaryExpression:
-                break;
-            case NodeKind.LogicalExpression:
-                break;
-            case NodeKind.UnaryExpression:
-                break;
-            case NodeKind.MemberExpression:
-                break;
-            case NodeKind.IndexExpression:
-                break;
-            case NodeKind.CallExpression:
-                break;
-            case NodeKind.TableCallExpression:
-                break;
-            case NodeKind.StringCallExpression:
-                break;
-            case NodeKind.FunctionDeclaration:
-                throw new Error('cannot index FunctionDeclaration')
-        }
     }
     
     forEachChild(node: (node: ExpressionContainer) => void) {

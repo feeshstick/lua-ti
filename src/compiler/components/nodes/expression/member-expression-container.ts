@@ -4,13 +4,11 @@ import {AbstractExpressionContainer} from "./abstract-expression-container.js";
 
 import {Container, createContainer, ExpressionContainer, NodeKind} from "../../types.js";
 import {Scope} from "../../../scope/scope.js";
-import {EntryLike} from "../../../table/symbol-table.js";
 
 export class MemberExpressionContainer extends AbstractExpressionContainer<NodeKind.MemberExpression> {
     public readonly base: ExpressionContainer;
     public readonly identifier: IdentifierContainer;
     public readonly kind = NodeKind.MemberExpression;
-    public _entry: EntryLike | undefined
     
     constructor(
         public readonly node: MemberExpression,
@@ -26,9 +24,12 @@ export class MemberExpressionContainer extends AbstractExpressionContainer<NodeK
         return this.node.indexer === ':'
     }
     
+    get indexer(): MemberExpression['indexer'] {
+        return this.node.indexer
+    }
+    
     forEachChild(node: (node: ExpressionContainer) => void) {
         node(this.base)
         node(this.identifier)
     }
-    
 }

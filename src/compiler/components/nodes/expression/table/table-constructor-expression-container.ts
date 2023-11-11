@@ -23,6 +23,12 @@ export class TableConstructorExpressionContainer extends AbstractExpressionConta
     ) {
         super(scope);
         this.fields = node.fields.map(x => createContainer(x, this, scope)) as Array<TableEntryContainer>
+        for (let i = 0; i < this.fields.length; i++) {
+            let field = this.fields[i];
+            if (field.kind === NodeKind.TableValue) {
+                field.index = i + 1
+            }
+        }
     }
     
     forEachChild(node: (node: TableEntryContainer) => void) {

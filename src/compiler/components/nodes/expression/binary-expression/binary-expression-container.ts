@@ -18,12 +18,12 @@ export class BinaryExpressionContainer extends AbstractExpressionContainer<NodeK
         this.right = createContainer(node.right, this, this.scope) as ExpressionContainer
     }
     
-    get operator(): BinaryExpression['operator'] {
-        return this.node.operator
-    }
-    
     forEachChild(node: (node: ExpressionContainer) => void) {
         node(this.left)
         node(this.right)
+    }
+    
+    get operator(): BinaryExpression['operator'] {
+        return this.node.operator
     }
 }

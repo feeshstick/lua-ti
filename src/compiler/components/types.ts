@@ -40,48 +40,46 @@ import {CommentContainer} from "./nodes/trivia/comment-trivia-container.js";
 import {ChunkContainer} from "./nodes/meta/chunk-container.js";
 import {SourceFileContainer} from "./nodes/meta/source-file-container.js";
 
-import {Primitive, Type} from "../type/type-system.js";
-
 export enum NodeKind {
     SourceFile = "SourceFile",
-    LabelStatement = "LabelStatement",
-    BreakStatement = "BreakStatement",
-    GotoStatement = "GotoStatement",
-    ReturnStatement = "ReturnStatement",
+    Chunk = "Chunk",
+    Block = "Block",
     IfStatement = "IfStatement",
+    IfClause = "IfClause",
+    ElseifClause = "ElseifClause",
+    ElseClause = "ElseClause",
+    CallStatement = "CallStatement",
+    CallExpression = "CallExpression",
+    TableCallExpression = "TableCallExpression",
+    StringCallExpression = "StringCallExpression",
+    TableConstructorExpression = "TableConstructorExpression",
+    TableKey = "TableKey",
+    TableKeyString = "TableKeyString",
+    TableValue = "TableValue",
+    Identifier = "Identifier",
+    MemberExpression = "MemberExpression",
+    IndexExpression = "IndexExpression",
+    ReturnStatement = "ReturnStatement",
     WhileStatement = "WhileStatement",
     DoStatement = "DoStatement",
     RepeatStatement = "RepeatStatement",
     LocalStatement = "LocalStatement",
     AssignmentStatement = "AssignmentStatement",
-    CallStatement = "CallStatement",
     FunctionDeclaration = "FunctionDeclaration",
     ForNumericStatement = "ForNumericStatement",
     ForGenericStatement = "ForGenericStatement",
-    Identifier = "Identifier",
     StringLiteral = "StringLiteral",
     NumericLiteral = "NumericLiteral",
     BooleanLiteral = "BooleanLiteral",
     NilLiteral = "NilLiteral",
     VarargLiteral = "VarargLiteral",
-    TableConstructorExpression = "TableConstructorExpression",
     BinaryExpression = "BinaryExpression",
     LogicalExpression = "LogicalExpression",
     UnaryExpression = "UnaryExpression",
-    MemberExpression = "MemberExpression",
-    IndexExpression = "IndexExpression",
-    CallExpression = "CallExpression",
-    TableCallExpression = "TableCallExpression",
-    StringCallExpression = "StringCallExpression",
-    IfClause = "IfClause",
-    ElseifClause = "ElseifClause",
-    ElseClause = "ElseClause",
-    Chunk = "Chunk",
-    TableKey = "TableKey",
-    TableKeyString = "TableKeyString",
-    TableValue = "TableValue",
+    LabelStatement = "LabelStatement",
+    BreakStatement = "BreakStatement",
+    GotoStatement = "GotoStatement",
     Comment = "Comment",
-    Block = "Block",
 }
 
 export interface FileReference {
@@ -182,17 +180,41 @@ export function createContainer(node: Node, parent: Container, scope: Scope) {
         case "StringCallExpression":
             return new StringCallExpressionContainer(node, parent, scope);
         case "IfClause":
-            return new IfClauseContainer(node, parent, scope);
+            if (parent.kind === NodeKind.IfStatement) {
+                return new IfClauseContainer(node, parent, scope);
+            } else {
+                throw new Error()
+            }
         case "ElseifClause":
-            return new ElseifClauseContainer(node, parent, scope);
+            if (parent.kind === NodeKind.IfStatement) {
+                return new ElseifClauseContainer(node, parent, scope);
+            } else {
+                throw new Error()
+            }
         case "ElseClause":
-            return new ElseClauseContainer(node, parent, scope);
+            if (parent.kind === NodeKind.IfStatement) {
+                return new ElseClauseContainer(node, parent, scope);
+            } else {
+                throw new Error()
+            }
         case "TableKey":
-            return new TableKeyContainer(node, parent, scope);
+            if (parent.kind === NodeKind.TableConstructorExpression) {
+                return new TableKeyContainer(node, parent, scope);
+            } else {
+                throw new Error()
+            }
         case "TableKeyString":
-            return new TableKeyStringContainer(node, parent, scope);
+            if (parent.kind === NodeKind.TableConstructorExpression) {
+                return new TableKeyStringContainer(node, parent, scope);
+            } else {
+                throw new Error()
+            }
         case "TableValue":
-            return new TableValueContainer(node, parent, scope);
+            if (parent.kind === NodeKind.TableConstructorExpression) {
+                return new TableValueContainer(node, parent, scope);
+            } else {
+                throw new Error()
+            }
         case "Comment":
             return new CommentContainer(node, parent, scope);
         default:
@@ -279,87 +301,28 @@ export enum BinaryExpressionOperator {
     compare_ge = ">=",
 }
 
-export const binaryOperatorToTypeMap: { [A in BinaryExpressionOperator]: Type } = {
-    [BinaryExpressionOperator.add]: Primitive.Number,
-    [BinaryExpressionOperator.sub]: Primitive.Number,
-    [BinaryExpressionOperator.mul]: Primitive.Number,
-    [BinaryExpressionOperator.mod]: Primitive.Number,
-    [BinaryExpressionOperator.exp]: Primitive.Number,
-    [BinaryExpressionOperator.div]: Primitive.Number,
-    [BinaryExpressionOperator.divFloor]: Primitive.Number,
-    [BinaryExpressionOperator.xor]: Primitive.Number,
-    [BinaryExpressionOperator.shiftLeft]: Primitive.Number,
-    [BinaryExpressionOperator.shiftRight]: Primitive.Number,
-    [BinaryExpressionOperator.concat]: Primitive.String,
-    [BinaryExpressionOperator.compare_ne]: Primitive.Bool,
-    [BinaryExpressionOperator.compare_eq]: Primitive.Bool,
-    [BinaryExpressionOperator.compare_lt]: Primitive.Bool,
-    [BinaryExpressionOperator.compare_le]: Primitive.Bool,
-    [BinaryExpressionOperator.compare_gt]: Primitive.Bool,
-    [BinaryExpressionOperator.compare_ge]: Primitive.Bool,
-    [BinaryExpressionOperator.and]: Primitive.Number,
-    [BinaryExpressionOperator.or]: Primitive.Number
-}
-
-function inferTypeFromArithmetic(target: BinaryExpressionContainer, left: ExpressionContainer, right: ExpressionContainer) {
-    console.warn('[WARN] : '+inferTypeFromArithmetic.name+' not implemented yet')
-}
-
-function inferTypeFromConcat(target: BinaryExpressionContainer, left: ExpressionContainer, right: ExpressionContainer) {
-    console.warn('[WARN] : '+inferTypeFromConcat.name+' not implemented yet')
-}
-
-function inferTypeFromCompare(target: BinaryExpressionContainer, left: ExpressionContainer, right: ExpressionContainer) {
-    console.warn('[WARN] : '+inferTypeFromCompare.name+' not implemented yet')
-}
-
-function inferTypeFromEquality(target: BinaryExpressionContainer, left: ExpressionContainer, right: ExpressionContainer) {
-    console.warn('[WARN] : '+inferTypeFromEquality.name+' not implemented yet')
-}
-
-export const binaryOperatorInferTypesToExpressions: {
-    [A in BinaryExpressionOperator]: (target: BinaryExpressionContainer, left: ExpressionContainer, right: ExpressionContainer) => void
-} = {
-    [BinaryExpressionOperator.add]: inferTypeFromArithmetic,
-    [BinaryExpressionOperator.sub]: inferTypeFromArithmetic,
-    [BinaryExpressionOperator.mul]: inferTypeFromArithmetic,
-    [BinaryExpressionOperator.mod]: inferTypeFromArithmetic,
-    [BinaryExpressionOperator.exp]: inferTypeFromArithmetic,
-    [BinaryExpressionOperator.div]: inferTypeFromArithmetic,
-    [BinaryExpressionOperator.divFloor]: inferTypeFromArithmetic,
-    [BinaryExpressionOperator.and]: inferTypeFromArithmetic,
-    [BinaryExpressionOperator.or]: inferTypeFromArithmetic,
-    [BinaryExpressionOperator.xor]: inferTypeFromArithmetic,
-    [BinaryExpressionOperator.shiftLeft]: inferTypeFromArithmetic,
-    [BinaryExpressionOperator.shiftRight]: inferTypeFromArithmetic,
-    [BinaryExpressionOperator.concat]: inferTypeFromConcat,
-    [BinaryExpressionOperator.compare_ne]: inferTypeFromEquality,
-    [BinaryExpressionOperator.compare_eq]: inferTypeFromEquality,
-    [BinaryExpressionOperator.compare_lt]: inferTypeFromCompare,
-    [BinaryExpressionOperator.compare_le]: inferTypeFromCompare,
-    [BinaryExpressionOperator.compare_gt]: inferTypeFromCompare,
-    [BinaryExpressionOperator.compare_ge]: inferTypeFromCompare
-}
-
 export enum UnaryExpressionOperator {
-    not = "not",
-    len = "#",
-    negate = "~",
-    negative = "-"
+    Not = "Not",
+    Length = "#",
+    BitNegate = "~",
+    ArithmeticNegate = "-"
 }
 
-export const unaryOperatorToTypeMap: { [A in UnaryExpressionOperator]: Type } = {
-    [UnaryExpressionOperator.not]: Primitive.Bool,
-    [UnaryExpressionOperator.len]: Primitive.Number,
-    [UnaryExpressionOperator.negate]: Primitive.Number,
-    [UnaryExpressionOperator.negative]: Primitive.Number
-}
-
-export const unaryOperatorTypeInfer: {
-    [A in UnaryExpressionOperator]: Type[]
-} = {
-    [UnaryExpressionOperator.not]: [Primitive.Any],
-    [UnaryExpressionOperator.len]: [Primitive.Table, Primitive.String],
-    [UnaryExpressionOperator.negate]: [Primitive.Number],
-    [UnaryExpressionOperator.negative]: [Primitive.Number]
+export function isExpressionContainer(container: Container): container is ExpressionContainer {
+    return container.kind === NodeKind.Identifier
+        || container.kind === NodeKind.StringLiteral
+        || container.kind === NodeKind.NumericLiteral
+        || container.kind === NodeKind.BooleanLiteral
+        || container.kind === NodeKind.NilLiteral
+        || container.kind === NodeKind.VarargLiteral
+        || container.kind === NodeKind.TableConstructorExpression
+        || container.kind === NodeKind.BinaryExpression
+        || container.kind === NodeKind.LogicalExpression
+        || container.kind === NodeKind.UnaryExpression
+        || container.kind === NodeKind.MemberExpression
+        || container.kind === NodeKind.IndexExpression
+        || container.kind === NodeKind.CallExpression
+        || container.kind === NodeKind.TableCallExpression
+        || container.kind === NodeKind.StringCallExpression
+        || container.kind === NodeKind.FunctionDeclaration
 }

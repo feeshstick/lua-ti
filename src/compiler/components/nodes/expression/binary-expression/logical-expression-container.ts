@@ -22,4 +22,8 @@ export class LogicalExpressionContainer extends AbstractExpressionContainer<Node
         node(this.left)
         node(this.right)
     }
+    
+    get operator(): LogicalExpression['operator'] {
+        return this.node.operator
+    }
 }

@@ -3,12 +3,10 @@ import {Scope} from "../../../../scope/scope.js";
 import {AbstractExpressionContainer} from "../abstract-expression-container.js";
 
 import {Container, ExpressionType, NodeKind} from "../../../types.js";
-import {EntryLike, SymbolEntry} from "../../../../table/symbol-table.js";
 
 export class IdentifierContainer extends AbstractExpressionContainer<NodeKind.Identifier> {
     public type = ExpressionType.Unknown
     public readonly kind = NodeKind.Identifier;
-    _entry: EntryLike | undefined;
     
     constructor(
         public readonly node: Identifier,
@@ -16,10 +14,6 @@ export class IdentifierContainer extends AbstractExpressionContainer<NodeKind.Id
         scope: Scope
     ) {
         super(scope)
-    }
-    
-    lookup(): SymbolEntry | undefined {
-        return this.symbols.lookup(this.name)
     }
     
     get name(): string {

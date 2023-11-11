@@ -2,9 +2,9 @@ import {Scope} from "../scope/scope.js";
 import {Container, ExtendedNode, FileReference, NodeKind, NodeRef} from "./types.js";
 
 import {BlockContainer} from "./nodes/meta/block-container.js";
-import {SymbolTable} from "../table/symbol-table.js";
 import {SourceFileContainer} from "./nodes/meta/source-file-container.js";
 import {ChunkContainer} from "./nodes/meta/chunk-container.js";
+import {SymbolTable} from "../table/symbol-table.js";
 
 export abstract class AbstractContainer<T> {
     private static idCounter = 0
@@ -17,17 +17,87 @@ export abstract class AbstractContainer<T> {
     }
 }
 
+export enum ContainerFlag {
+    None = 0,
+    Declaration = 1,
+    Global = 1 << 1,
+    Local = 1 << 2,
+    Resolve = 1 << 3,
+    Function = 1 << 4,
+    Parameter = (1 << 5) | Local,
+    Call = 1 << 6,
+    Argument = 1 << 7,
+    Semi = 1 << 8,
+    Indexed = 1 << 9,
+    DeclareGlobal = Global | Declaration,
+    DeclareLocal = Local | Declaration,
+    DeclareOrResolveGlobal = Global | Declaration | Resolve,
+    DeclareOrResolveLocal = Local | Declaration | Resolve,
+}
+
+/**
+ * 0000 0000 0000 0000
+ *            CPF RLGD
+ * D allow Declaration
+ * G Global Scope Flag
+ * L Local Scope Flag
+ * R allow Resolve
+ * F Function Flag
+ * P Parameter Flag
+ * C Call Flag
+ * A Argument Flag
+ */
+
+export function isDeclarationFlag(flag: ContainerFlag) {
+    return (flag & ContainerFlag.Declaration) === ContainerFlag.Declaration
+}
+
+export function isFunctionDeclaration(flag: ContainerFlag) {
+    return isDeclarationFlag(flag) && (flag & ContainerFlag.Function) === ContainerFlag.Function
+}
+
+export function isLocalFlag(flag: ContainerFlag) {
+    return (flag & ContainerFlag.Local) === ContainerFlag.Local
+}
+
+export function isParameterFlag(flag: ContainerFlag) {
+    return (flag & ContainerFlag.Parameter) === ContainerFlag.Parameter
+}
+
+export function isSemiFlag(flag: ContainerFlag) {
+    return (flag & ContainerFlag.Semi) === ContainerFlag.Semi
+}
+
+export function isResolveFlag(flag: ContainerFlag) {
+    return (flag & ContainerFlag.Resolve) === ContainerFlag.Resolve
+}
+
+export function isCallFlag(flag: ContainerFlag) {
+    return (flag & ContainerFlag.Call) === ContainerFlag.Call
+}
+
 export abstract class BaseContainer<NKind extends NodeKind> extends AbstractContainer<NKind> {
     public _stopPropagation: boolean = false
     public abstract readonly kind: NKind
     public abstract readonly node: NodeRef<NKind extends ExtendedNode['type'] ? ExtendedNode['type'] : never>
     public abstract parent: Container | undefined
     public block?: BlockContainer
+    public readonly _flags: string[] = []
+    public flag: ContainerFlag = ContainerFlag.None
+    private __tableOverwrite: SymbolTable | undefined;
     
     protected constructor(
         scope: Scope
     ) {
         super(scope)
+    }
+    
+    /**
+     * @deprecated
+     * @param flag
+     */
+    deprSetFlag(flag: string) {
+        this._flags.push(flag)
     }
     
     get errLoc() {
@@ -77,16 +147,28 @@ export abstract class BaseContainer<NKind extends NodeKind> extends AbstractCont
         }
     }
     
-    get symbols(): SymbolTable {
-        if (this.kind === NodeKind.SourceFile) {
-            return (this as unknown as SourceFileContainer).rootSymbolTable
-        } else if (this.block) {
-            return this.block.symbolTable
+    setTableOverwrite(table: SymbolTable) {
+        this.__tableOverwrite = table
+    }
+    
+    clearTableOverwrite(){
+        this.__tableOverwrite = undefined
+    }
+    
+    get __table(): SymbolTable {
+        if (this.__tableOverwrite) {
+            return this.__tableOverwrite
         } else {
-            if (this.parent) {
-                return this.parent.symbols
+            if (this.kind === NodeKind.SourceFile) {
+                return (this as unknown as SourceFileContainer).getGlobalTable()
+            } else if (this.kind === NodeKind.Block) {
+                return (this as unknown as BlockContainer).getLocalTable()
             } else {
-                throw new Error()
+                if (this.parent) {
+                    return this.parent.__table
+                } else {
+                    throw new Error()
+                }
             }
         }
     }
