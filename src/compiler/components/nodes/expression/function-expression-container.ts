@@ -4,7 +4,7 @@ import {VarargLiteralContainer} from "./literal/vararg-literal-container.js";
 import {Scope} from "../../../scope/scope.js";
 import {AbstractExpressionContainer} from "./abstract-expression-container.js";
 
-import {Container, createContainer, NodeKind, ParameterContainer} from "../../types.js";
+import {Container, createContainer, ExpressionContainer, NodeKind, ParameterContainer} from "../../types.js";
 import {MemberExpressionContainer} from "./member-expression-container.js";
 
 import {BlockContainer} from "../meta/block-container.js";
@@ -67,5 +67,4 @@ export class FunctionExpressionContainer extends AbstractExpressionContainer<Nod
         }
         node(this.block)
     }
-    
 }

@@ -8,7 +8,7 @@
     ".": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc"
+    "start": "tsc && node main"
   },
   "files": [
     "src"

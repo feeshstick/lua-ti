@@ -4,8 +4,9 @@ import {BaseContainer} from "../../../../base-container.js";
 import {Scope} from "../../../../../scope/scope.js";
 import {createContainer, ExpressionContainer, NodeKind} from "../../../../types.js";
 import {TableConstructorExpressionContainer} from "../table-constructor-expression-container.js";
+import {AbstractExpressionContainer} from "../../abstract-expression-container.js";
 
-export class TableKeyStringContainer extends BaseContainer<NodeKind.TableKeyString> {
+export class TableKeyStringContainer extends AbstractExpressionContainer<NodeKind.TableKeyString> {
     public readonly key: IdentifierContainer
     public readonly value: ExpressionContainer
     public readonly kind = NodeKind.TableKeyString

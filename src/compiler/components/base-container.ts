@@ -28,7 +28,7 @@ export enum ContainerFlag {
     Call = 1 << 6,
     Argument = 1 << 7,
     Semi = 1 << 8,
-    
+    Indexed = 1 << 9,
     DeclareGlobal = Global | Declaration,
     DeclareLocal = Local | Declaration,
     DeclareOrResolveGlobal = Global | Declaration | Resolve,
@@ -60,11 +60,11 @@ export function isLocalFlag(flag: ContainerFlag) {
     return (flag & ContainerFlag.Local) === ContainerFlag.Local
 }
 
-export function isParameterDeclarationFlag(flag: ContainerFlag) {
+export function isParameterFlag(flag: ContainerFlag) {
     return (flag & ContainerFlag.Parameter) === ContainerFlag.Parameter
 }
 
-export function isSemiDeclarationFlag(flag: ContainerFlag) {
+export function isSemiFlag(flag: ContainerFlag) {
     return (flag & ContainerFlag.Semi) === ContainerFlag.Semi
 }
 
@@ -84,6 +84,7 @@ export abstract class BaseContainer<NKind extends NodeKind> extends AbstractCont
     public block?: BlockContainer
     public readonly _flags: string[] = []
     public flag: ContainerFlag = ContainerFlag.None
+    private __tableOverwrite: SymbolTable | undefined;
     
     protected constructor(
         scope: Scope
@@ -146,16 +147,28 @@ export abstract class BaseContainer<NKind extends NodeKind> extends AbstractCont
         }
     }
     
+    setTableOverwrite(table: SymbolTable) {
+        this.__tableOverwrite = table
+    }
+    
+    clearTableOverwrite(){
+        this.__tableOverwrite = undefined
+    }
+    
     get __table(): SymbolTable {
-        if (this.kind === NodeKind.SourceFile) {
-            return (this as unknown as SourceFileContainer).getGlobalTable()
-        } else if (this.kind === NodeKind.Block) {
-            return (this as unknown as BlockContainer).getLocalTable()
+        if (this.__tableOverwrite) {
+            return this.__tableOverwrite
         } else {
-            if (this.parent) {
-                return this.parent.__table
+            if (this.kind === NodeKind.SourceFile) {
+                return (this as unknown as SourceFileContainer).getGlobalTable()
+            } else if (this.kind === NodeKind.Block) {
+                return (this as unknown as BlockContainer).getLocalTable()
             } else {
-                throw new Error()
+                if (this.parent) {
+                    return this.parent.__table
+                } else {
+                    throw new Error()
+                }
             }
         }
     }
