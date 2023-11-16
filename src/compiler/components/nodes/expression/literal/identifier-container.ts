@@ -1,12 +1,13 @@
 import {Identifier} from "luaparse/lib/ast.js";
-import {Scope} from "../../../../scope/scope.js";
+import {Scope} from "../../../scope.js";
 import {AbstractExpressionContainer} from "../abstract-expression-container.js";
 
-import {Container, ExpressionType, NodeKind} from "../../../types.js";
+import {Container, NodeKind} from "../../../container-types.js";
+import {ParameterAnnotation} from "../../../../annotation/annotation.js";
 
 export class IdentifierContainer extends AbstractExpressionContainer<NodeKind.Identifier> {
-    public type = ExpressionType.Unknown
     public readonly kind = NodeKind.Identifier;
+    public parameterAnnotation: ParameterAnnotation | undefined
     
     constructor(
         public readonly node: Identifier,

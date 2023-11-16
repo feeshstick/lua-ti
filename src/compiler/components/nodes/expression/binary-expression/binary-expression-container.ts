@@ -1,8 +1,14 @@
 import {BinaryExpression} from "luaparse/lib/ast.js";
-import {Scope} from "../../../../scope/scope.js";
+import {Scope} from "../../../scope.js";
 import {AbstractExpressionContainer} from "../abstract-expression-container.js";
 
-import {Container, createContainer, ExpressionContainer, NodeKind} from "../../../types.js";
+import {
+    BinaryExpressionOperator,
+    Container,
+    createContainer,
+    ExpressionContainer,
+    NodeKind
+} from "../../../container-types.js";
 
 export class BinaryExpressionContainer extends AbstractExpressionContainer<NodeKind.BinaryExpression> {
     public readonly left: ExpressionContainer
@@ -23,7 +29,7 @@ export class BinaryExpressionContainer extends AbstractExpressionContainer<NodeK
         node(this.right)
     }
     
-    get operator(): BinaryExpression['operator'] {
-        return this.node.operator
+    get operator(): BinaryExpressionOperator {
+        return this.node.operator as BinaryExpressionOperator
     }
 }

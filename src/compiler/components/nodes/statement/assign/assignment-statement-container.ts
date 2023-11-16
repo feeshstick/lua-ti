@@ -3,8 +3,8 @@ import {IndexExpressionContainer} from "../../expression/index-expression-contai
 import {IdentifierContainer} from "../../expression/literal/identifier-container.js";
 import {MemberExpressionContainer} from "../../expression/member-expression-container.js";
 import {BaseContainer} from "../../../base-container.js";
-import {Scope} from "../../../../scope/scope.js";
-import {Container, createContainer, ExpressionContainer, NodeKind} from "../../../types.js";
+import {Scope} from "../../../scope.js";
+import {Container, createContainer, ExpressionContainer, NodeKind} from "../../../container-types.js";
 
 export class AssignmentStatementContainer extends BaseContainer<NodeKind.AssignmentStatement> {
     public readonly init: ExpressionContainer[]

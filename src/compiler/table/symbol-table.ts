@@ -1,4 +1,4 @@
-import {Container, ExpressionContainer} from "../components/types.js";
+import {Container, ExpressionContainer} from "../components/container-types.js";
 import {CallExpressionContainer} from "../components/nodes/expression/call-expression/call-expression-container.js";
 import {FunctionExpressionContainer} from "../components/nodes/expression/function-expression-container.js";
 import {ReturnStatementContainer} from "../components/nodes/statement/return-statement-container.js";
@@ -8,6 +8,9 @@ import {
 import {
     TableCallExpressionContainer
 } from "../components/nodes/expression/call-expression/table-call-expression-container.js";
+import {Type} from "../type/type.js";
+import {CompilerOptions} from "../compiler-options/compiler-options.js";
+import {entries} from "./table-builder.js";
 
 export type ObjectMap<E> = { [key: string | number]: E }
 
@@ -27,6 +30,8 @@ export enum BubbleBreak {
     GlobalBubble
 }
 
+export type MemberKind = 'member' | 'parameter' | 'semi'
+
 export interface AbstractSymbolTable<E extends LSymbolTableKind> extends AbstractSymbol<E> {
     parent: SymbolTable | undefined
     kind: E
@@ -36,11 +41,15 @@ export interface AbstractSymbolTable<E extends LSymbolTableKind> extends Abstrac
     semi?: ObjectMap<Variable>
     bubbleBreak: BubbleBreak
     
+    entries(): [string, Variable][]
+    
     lookup(name: string, bubbles?: BubbleBreak): Variable | undefined
+    
+    lookupTrack(name: string): [Variable, MemberKind, BubbleBreak[]] | undefined
     
     has(name: string, bubbles?: BubbleBreak): boolean
     
-    enter<Err extends Error>(name: string, table: Variable, err: Err): Variable
+    enter(name: string, set: Variable, location: MemberKind, compilerOptions: CompilerOptions): Variable
     
     create(): LocalTable
     
@@ -72,16 +81,16 @@ export interface Call {
     returns: Variable
 }
 
-export interface SignatureParameter {
+export interface ParameterDeclaration {
     symbol: Variable
 }
 
-export interface FunctionSignature {
+export interface FunctionDeclaration {
     functionBodyTable: SymbolTable
-    parameter: Array<SignatureParameter>
-    declaration: FunctionExpressionContainer
+    parameter: Array<ParameterDeclaration>
+    declaration?: FunctionExpressionContainer
     returns: Array<{
-        declaration: ReturnStatementContainer,
+        declaration?: ReturnStatementContainer,
         arguments: Variable[]
     }>
 }
@@ -98,8 +107,9 @@ export interface Variable extends AbstractSymbol<LSymbolTableKind.Variable> {
         value: Variable
     }[]
     calls?: Array<Call>
-    functionSignature?: FunctionSignature
+    functionDeclaration?: FunctionDeclaration
     offset?: number
+    type: Type | undefined
 }
 
 export function addCallToVariable(variable: Variable, call: Call) {
@@ -117,31 +127,6 @@ export function addMemberToVariable(name: string, variable: Variable, member: Va
         variable.member = {[name]: member}
     }
     return member
-}
-
-export function getMemberOrElse(name: string, variable: Variable, orElse: () => Variable): Variable {
-    if (variable.member) {
-        if (variable.member[name]) {
-            return variable.member[name]
-        }
-    } else {
-        variable.member = {}
-    }
-    variable.member[name] = orElse()
-    return variable.member[name]
-}
-
-export function createVariable(container: Container, id: number, name?: string): Variable {
-    return {
-        id: id,
-        kind: LSymbolTableKind.Variable,
-        flag: SymbolFlag.None,
-        declarations: [container],
-        name: name,
-        indexedMember: [],
-        functionSignature: undefined,
-        offset: undefined
-    }
 }
 
 export enum SymbolFlag {
@@ -219,13 +204,38 @@ export function createTable(parent?: SymbolTable): SymbolTable {
             has(name: string, bubbles: BubbleBreak): boolean {
                 return !!this.lookup(name, bubbles)
             },
-            enter<Err extends Error>(name: string, table: Variable, err: Err): Variable {
-                if (this.member[name]) {
-                    throw err
-                } else {
-                    this.member[name] = table
-                    return table
+            enter(name: string, table: Variable, location: 'member' | 'parameter' | 'semi', compilerOptions: CompilerOptions): Variable {
+                if (this.has(name, BubbleBreak.GlobalBubble)) {
+                    throw new Error()
                 }
+                switch (location) {
+                    case "member":
+                        this.member[name] = table
+                        break;
+                    case "parameter":
+                        this.getParameter()[name] = table
+                        break;
+                    case "semi":
+                        this.getSemi()[name] = table
+                        break;
+                }
+                return table
+            },
+            lookupTrack(name: string) {
+                if (this.parameter && this.parameter[name]) {
+                    return [this.parameter[name], 'parameter', [this.bubbleBreak]]
+                } else if (this.semi && this.semi[name]) {
+                    return [this.semi[name], 'semi', [this.bubbleBreak]]
+                } else if (this.member && this.member[name]) {
+                    return [this.member[name], 'member', [this.bubbleBreak]]
+                } else if (this.parent) {
+                    const variable = this.parent.lookupTrack(name)
+                    if (variable) {
+                        variable[2].unshift(this.bubbleBreak)
+                        return variable
+                    }
+                }
+                return undefined
             },
             lookup(name, bubbles = BubbleBreak.GlobalBubble) {
                 if (this.parameter && this.parameter[name]) {
@@ -255,6 +265,13 @@ export function createTable(parent?: SymbolTable): SymbolTable {
                     this.parameter = {}
                 }
                 return this.parameter
+            },
+            entries(): [string, Variable][] {
+                return [
+                    ...entries(this.parameter || {}),
+                    ...entries(this.semi || {}),
+                    ...entries(this.member)
+                ] as [string, Variable][]
             },
             get global(): GlobalTable {
                 if (this.kind === LSymbolTableKind.GlobalEnvironment) {

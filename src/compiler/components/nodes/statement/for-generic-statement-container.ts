@@ -1,8 +1,8 @@
 import {ForGenericStatement} from "luaparse/lib/ast.js";
 import {IdentifierContainer} from "../expression/literal/identifier-container.js";
 import {BaseContainer} from "../../base-container.js";
-import {Scope} from "../../../scope/scope.js";
-import {BlockStatement, Container, createContainer, ExpressionContainer, NodeKind} from "../../types.js";
+import {Scope} from "../../scope.js";
+import {BlockStatement, Container, createContainer, ExpressionContainer, NodeKind} from "../../container-types.js";
 import {BlockContainer} from "../meta/block-container.js";
 
 export class ForGenericStatementContainer extends BaseContainer<NodeKind.ForGenericStatement> implements BlockStatement {

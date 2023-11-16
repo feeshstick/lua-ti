@@ -14,6 +14,7 @@
     "src"
   ],
   "devDependencies": {
+    "@types/commander": "^2.12.2",
     "@types/luaparse": "^0.2.11",
     "@types/minimist": "^1.2.2",
     "@types/ms": "^0.7.31",
@@ -23,6 +24,7 @@
     "@types/source-map-support": "^0.5.6",
     "@types/ws": "^8.5.4",
     "chalk": "^5.2.0",
+    "commander": "^11.1.0",
     "flatted": "^3.2.7",
     "hereby": "^1.8.1",
     "luaparse": "^0.3.1",
@@ -38,9 +40,12 @@
   },
   "dependencies": {
     "@ts-morph/bootstrap": "^0.21.0",
+    "@types/pegjs": "^0.10.6",
     "circular-json": "^0.5.9",
+    "levenshtein-edit-distance": "^3.0.1",
     "node-html-parser": "^6.1.10",
     "ntypescript": "^1.201706190042.1",
+    "pegjs": "^0.10.0",
     "ts-morph": "^20.0.0"
   }
 }

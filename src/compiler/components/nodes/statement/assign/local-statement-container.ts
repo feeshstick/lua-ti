@@ -1,8 +1,8 @@
 import {LocalStatement} from "luaparse/lib/ast.js";
 import {IdentifierContainer} from "../../expression/literal/identifier-container.js";
 import {BaseContainer} from "../../../base-container.js";
-import {Scope} from "../../../../scope/scope.js";
-import {Container, createContainer, ExpressionContainer, NodeKind} from "../../../types.js";
+import {Scope} from "../../../scope.js";
+import {Container, createContainer, ExpressionContainer, NodeKind} from "../../../container-types.js";
 
 export class LocalStatementContainer extends BaseContainer<NodeKind.LocalStatement> {
     public readonly init: ExpressionContainer[]

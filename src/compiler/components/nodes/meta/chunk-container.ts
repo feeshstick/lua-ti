@@ -1,14 +1,14 @@
 import {Chunk} from "luaparse/lib/ast.js";
 import {BaseContainer} from "../../base-container.js";
-import {Scope} from "../../../scope/scope.js";
-import {Container, FileReference, NodeKind} from "../../types.js";
+import {Scope} from "../../scope.js";
+import {Container, FileReference, NodeKind} from "../../container-types.js";
 
 import {BlockContainer} from "./block-container.js";
 
 export class ChunkContainer extends BaseContainer<NodeKind.Chunk> {
     
     public override readonly block: BlockContainer
-    public readonly kind = NodeKind.Chunk;
+    public readonly kind = NodeKind.Chunk
     
     constructor(
         public readonly sourceFile: FileReference,

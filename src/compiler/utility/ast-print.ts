@@ -1,4 +1,4 @@
-import {Container, NodeKind} from "../components/types.js";
+import {Container, NodeKind} from "../components/container-types.js";
 import {createStringBuilder, StringBuilder} from "./string-builder.js";
 
 export function astPrint(container: Container) {

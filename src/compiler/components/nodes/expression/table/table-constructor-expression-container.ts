@@ -2,10 +2,10 @@ import {TableConstructorExpression} from "luaparse/lib/ast.js";
 import {TableKeyContainer} from "./table-entry/table-key-container.js";
 import {TableKeyStringContainer} from "./table-entry/table-key-string-container.js";
 import {TableValueContainer} from "./table-entry/table-value-container.js";
-import {Scope} from "../../../../scope/scope.js";
+import {Scope} from "../../../scope.js";
 import {AbstractExpressionContainer} from "../abstract-expression-container.js";
 
-import {Container, createContainer, NodeKind} from "../../../types.js";
+import {Container, createContainer, NodeKind} from "../../../container-types.js";
 
 export type TableEntryContainer =
     | TableKeyContainer

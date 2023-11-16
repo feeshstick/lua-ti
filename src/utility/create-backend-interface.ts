@@ -1,14 +1,37 @@
 import fs from "fs";
 import prettier from "prettier";
 
-export function createBackendInterface() {
+export interface CppToLuaClass {
+    name: string
+    functions: CppToLuaFunction[]
+}
+
+export interface CppToLuaParameter {
+    name: string
+    type: string
+    isOptional: boolean
+}
+
+export interface CppToLuaFunction {
+    name: string
+    parameter: CppToLuaParameter[]
+    returnType: string
+    usesSelf: boolean
+}
+
+export function createBackendInterface(path, convertIntTypes: boolean): {
+    ts: () => string,
+    json: () => string,
+    lua: () => string,
+    structure: CppToLuaClass[]
+} {
     const table: {
         [base: string]: {}
     } = {}
     const doLater: VoidFunction[] = []
-    for (let file of fs.readdirSync('assets/ygopro-core')) {
+    for (let file of fs.readdirSync(path)) {
         if (file.startsWith('lib') && file.endsWith('.cpp')) {
-            const source = fs.readFileSync('assets/ygopro-core/' + file).toString('utf-8')
+            const source = fs.readFileSync(path + '/' + file).toString('utf-8')
             const base = /LUA_MODULE (\w+)/gm.exec(source)
             if (base) {
                 const baseName = base[1]
@@ -76,33 +99,15 @@ export function createBackendInterface() {
     // }))
     const text: string[] = []
     
-    interface LuaClass {
-        name: string
-        functions: LuaFunction[]
-    }
-    
-    interface LuaParameter {
-        name: string
-        type: string
-        isOptional: boolean
-    }
-    
-    interface LuaFunction {
-        name: string
-        parameter: LuaParameter[]
-        returnType: string
-        usesSelf: boolean
-    }
-    
-    const classes: LuaClass[] = []
+    const classes: CppToLuaClass[] = []
     for (let [interfaceName, properties] of Object.keys(table).map(key => [key, table[key]])) {
         text.push('export type ' + interfaceName + ' = {')
-        const _class: LuaClass = {
+        const _class: CppToLuaClass = {
             name: interfaceName as string,
             functions: []
         }
         for (let [functionName, functionProperties] of Object.keys(properties).map(fkey => [fkey, properties[fkey]])) {
-            const _function: LuaFunction = {
+            const _function: CppToLuaFunction = {
                 name: functionName,
                 parameter: [],
                 returnType: 'any',
@@ -130,7 +135,7 @@ export function createBackendInterface() {
                     _function.parameter.push({
                         name: parameterElement.name,
                         isOptional: isOptional,
-                        type: type
+                        type: convertIntTypes ? convertType(type) : type
                     })
                 } else {
                     text.push(`_${index}${isOptional ? '?' : ''}:any`)
@@ -149,8 +154,17 @@ export function createBackendInterface() {
         text.push('}')
         classes.push(_class)
     }
-    fs.writeFileSync('api.ts', prettier.format(text.join('\n'), {parser: 'babel-ts'}))
-    fs.writeFileSync('api.json', prettier.format(JSON.stringify(classes), {parser: 'json'}))
+    
+    function convertType(type: string): string {
+        if (type.includes('int')) {
+            return 'number'
+        } else if (type === 'bool') {
+            return 'boolean'
+        } else {
+            return type
+        }
+    }
+    
     const luaDoc: string[] = []
     luaDoc.push('---@meta')
     for (let cls of classes) {
@@ -167,6 +181,16 @@ export function createBackendInterface() {
             luaDoc.push('')
         }
     }
-    fs.writeFileSync('api.lua', luaDoc.join('\n'))
-    console.log(classes)
+    return {
+        json(): string {
+            return prettier.format(JSON.stringify(classes), {parser: 'json'});
+        },
+        lua(): string {
+            return luaDoc.join('\n');
+        },
+        ts(): string {
+            return prettier.format(text.join('\n'), {parser: 'babel-ts'});
+        },
+        structure: classes
+    }
 }

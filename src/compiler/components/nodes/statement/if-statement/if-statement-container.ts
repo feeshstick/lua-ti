@@ -3,8 +3,8 @@ import {IfClauseContainer} from "./clause/if-clause-container.js";
 import {ElseifClauseContainer} from "./clause/elseif-clause-container.js";
 import {ElseClauseContainer} from "./clause/else-clause-container.js";
 import {BaseContainer} from "../../../base-container.js";
-import {Scope} from "../../../../scope/scope.js";
-import {Container, createContainer, NodeKind} from "../../../types.js";
+import {Scope} from "../../../scope.js";
+import {Container, createContainer, NodeKind} from "../../../container-types.js";
 
 export class IfStatementContainer extends BaseContainer<NodeKind.IfStatement> {
     

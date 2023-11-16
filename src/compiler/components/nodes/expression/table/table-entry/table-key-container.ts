@@ -1,7 +1,6 @@
 import {TableKey} from "luaparse/lib/ast.js";
-import {BaseContainer} from "../../../../base-container.js";
-import {Scope} from "../../../../../scope/scope.js";
-import {createContainer, ExpressionContainer, NodeKind} from "../../../../types.js";
+import {Scope} from "../../../../scope.js";
+import {createContainer, ExpressionContainer, NodeKind} from "../../../../container-types.js";
 import {TableConstructorExpressionContainer} from "../table-constructor-expression-container.js";
 import {AbstractExpressionContainer} from "../../abstract-expression-container.js";
 

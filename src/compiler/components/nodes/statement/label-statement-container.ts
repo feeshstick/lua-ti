@@ -1,8 +1,8 @@
 import {LabelStatement} from "luaparse/lib/ast.js";
 import {IdentifierContainer} from "../expression/literal/identifier-container.js";
 import {BaseContainer} from "../../base-container.js";
-import {Scope} from "../../../scope/scope.js";
-import {Container, createContainer, NodeKind} from "../../types.js";
+import {Scope} from "../../scope.js";
+import {Container, createContainer, NodeKind} from "../../container-types.js";
 
 export class LabelStatementContainer extends BaseContainer<NodeKind.LabelStatement> {
     

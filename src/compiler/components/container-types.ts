@@ -29,7 +29,7 @@ import {AssignmentStatementContainer} from "./nodes/statement/assign/assignment-
 import {CallStatementContainer} from "./nodes/statement/call-statement-container.js";
 import {ForNumericStatementContainer} from "./nodes/statement/for-numeric-statement-container.js";
 import {ForGenericStatementContainer} from "./nodes/statement/for-generic-statement-container.js";
-import {Scope} from "../scope/scope.js";
+import {Scope} from "./scope.js";
 import {IfClauseContainer} from "./nodes/statement/if-statement/clause/if-clause-container.js";
 import {ElseifClauseContainer} from "./nodes/statement/if-statement/clause/elseif-clause-container.js";
 import {ElseClauseContainer} from "./nodes/statement/if-statement/clause/else-clause-container.js";
@@ -39,6 +39,7 @@ import {TableValueContainer} from "./nodes/expression/table/table-entry/table-va
 import {CommentContainer} from "./nodes/trivia/comment-trivia-container.js";
 import {ChunkContainer} from "./nodes/meta/chunk-container.js";
 import {SourceFileContainer} from "./nodes/meta/source-file-container.js";
+import {CompilerOptions} from "../compiler-options/compiler-options.js";
 
 export enum NodeKind {
     SourceFile = "SourceFile",
@@ -86,6 +87,7 @@ export interface FileReference {
     path: string
     name: string
     source: string
+    compilerOptions: CompilerOptions
 }
 
 export interface Block extends Base<'Block'> {
@@ -97,7 +99,6 @@ export interface Block extends Base<'Block'> {
 export interface SourceFileNode extends Base<"SourceFile"> {
     type: "SourceFile"
     files: FileReference[]
-    typeDeclaration?: TypeDeclarationSourceFile
     range: [number, number]
 }
 
@@ -267,17 +268,6 @@ export type Container =
     | CommentContainer
     | SourceFileContainer
     | BlockContainer
-
-export enum ExpressionType {
-    Number = "number",
-    String = "string",
-    Table = "table",
-    Boolean = "boolean",
-    Nil = "nil",
-    ArgumentList = "$args",
-    _Function = "function",
-    Unknown = "$unknown"
-}
 
 export enum BinaryExpressionOperator {
     add = "+",

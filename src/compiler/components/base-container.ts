@@ -1,10 +1,14 @@
-import {Scope} from "../scope/scope.js";
-import {Container, ExtendedNode, FileReference, NodeKind, NodeRef} from "./types.js";
+import {Scope} from "./scope.js";
+import {Container, createContainer, ExtendedNode, NodeKind, NodeRef} from "./container-types.js";
 
 import {BlockContainer} from "./nodes/meta/block-container.js";
 import {SourceFileContainer} from "./nodes/meta/source-file-container.js";
 import {ChunkContainer} from "./nodes/meta/chunk-container.js";
 import {SymbolTable} from "../table/symbol-table.js";
+import {CompilerOptions} from "../compiler-options/compiler-options.js";
+import {LuaTiErrorHelper} from "../error/lua-ti-error.js";
+import {CommentContainer} from "./nodes/trivia/comment-trivia-container.js";
+import {Comment} from "luaparse/lib/ast.js";
 
 export abstract class AbstractContainer<T> {
     private static idCounter = 0
@@ -22,17 +26,18 @@ export enum ContainerFlag {
     Declaration = 1,
     Global = 1 << 1,
     Local = 1 << 2,
-    Resolve = 1 << 3,
+    Member = 1 << 3,
     Function = 1 << 4,
     Parameter = (1 << 5) | Local,
     Call = 1 << 6,
     Argument = 1 << 7,
     Semi = 1 << 8,
     Indexed = 1 << 9,
+    AssignNewValue = 1 << 10,
     DeclareGlobal = Global | Declaration,
     DeclareLocal = Local | Declaration,
-    DeclareOrResolveGlobal = Global | Declaration | Resolve,
-    DeclareOrResolveLocal = Local | Declaration | Resolve,
+    DeclareOrResolveGlobal = Global | Declaration | Member,
+    DeclareOrResolveLocal = Local | Declaration | Member,
 }
 
 /**
@@ -52,8 +57,8 @@ export function isDeclarationFlag(flag: ContainerFlag) {
     return (flag & ContainerFlag.Declaration) === ContainerFlag.Declaration
 }
 
-export function isFunctionDeclaration(flag: ContainerFlag) {
-    return isDeclarationFlag(flag) && (flag & ContainerFlag.Function) === ContainerFlag.Function
+export function isAssignNewValue(flag: ContainerFlag) {
+    return (flag & ContainerFlag.AssignNewValue) === ContainerFlag.AssignNewValue
 }
 
 export function isLocalFlag(flag: ContainerFlag) {
@@ -68,8 +73,8 @@ export function isSemiFlag(flag: ContainerFlag) {
     return (flag & ContainerFlag.Semi) === ContainerFlag.Semi
 }
 
-export function isResolveFlag(flag: ContainerFlag) {
-    return (flag & ContainerFlag.Resolve) === ContainerFlag.Resolve
+export function isMemberFlag(flag: ContainerFlag) {
+    return (flag & ContainerFlag.Member) === ContainerFlag.Member
 }
 
 export function isCallFlag(flag: ContainerFlag) {
@@ -82,9 +87,9 @@ export abstract class BaseContainer<NKind extends NodeKind> extends AbstractCont
     public abstract readonly node: NodeRef<NKind extends ExtendedNode['type'] ? ExtendedNode['type'] : never>
     public abstract parent: Container | undefined
     public block?: BlockContainer
-    public readonly _flags: string[] = []
     public flag: ContainerFlag = ContainerFlag.None
     private __tableOverwrite: SymbolTable | undefined;
+    public readonly comments: CommentContainer[] = []
     
     protected constructor(
         scope: Scope
@@ -92,30 +97,30 @@ export abstract class BaseContainer<NKind extends NodeKind> extends AbstractCont
         super(scope)
     }
     
-    /**
-     * @deprecated
-     * @param flag
-     */
-    deprSetFlag(flag: string) {
-        this._flags.push(flag)
-    }
-    
-    get errLoc() {
-        return `${this.node.loc!.start.line}:${this.node.loc!.start.column}`
-    }
-    
-    get fileReference(): FileReference {
-        if (this.kind === NodeKind.Chunk) {
-            return (this as unknown as ChunkContainer).sourceFile
-        } else if (this.parent) {
-            return this.parent.fileReference
-        } else {
-            throw new Error()
+    onInit() {
+        if (this.node['comments']) {
+            for (let comment of (this.node['comments'] as Comment[])) {
+                const commentContainer = createContainer(comment, this as Container, this.scope) as CommentContainer
+                this.comments.push(commentContainer)
+                commentContainer.onInit()
+            }
         }
     }
     
-    get depth() {
-        return this.parent ? this.parent.depth + 1 : 1
+    abstract forEachChild(node: (node: Container) => void)
+    
+    get compilerOptions(): CompilerOptions {
+        if (this.kind === NodeKind.Chunk) {
+            return (this as unknown as ChunkContainer).sourceFile.compilerOptions
+        } else if (this.kind === NodeKind.SourceFile || !this.parent) {
+            throw LuaTiErrorHelper.CannotAccessCompilerOptionsOfRootFile()
+        } else {
+            return this.parent.compilerOptions
+        }
+    }
+    
+    get errLoc() {
+        return `${this.node.loc!.start.line}:${this.node.loc!.start.column + 1}`
     }
     
     get range(): [number, number] {
@@ -131,14 +136,6 @@ export abstract class BaseContainer<NKind extends NodeKind> extends AbstractCont
         return this.parent!.getTextFromRange(range)
     }
     
-    getText(source: string) {
-        return source.slice(this.range[0], this.range[1])
-    }
-    
-    createScope(): Scope {
-        return this.scope.createScope(this as Container)
-    }
-    
     find<E extends Container>(kind: E['kind']): E | undefined {
         if (this.kind === kind) {
             return this as unknown as E
@@ -151,11 +148,11 @@ export abstract class BaseContainer<NKind extends NodeKind> extends AbstractCont
         this.__tableOverwrite = table
     }
     
-    clearTableOverwrite(){
+    clearTableOverwrite() {
         this.__tableOverwrite = undefined
     }
     
-    get __table(): SymbolTable {
+    get table(): SymbolTable {
         if (this.__tableOverwrite) {
             return this.__tableOverwrite
         } else {
@@ -165,15 +162,13 @@ export abstract class BaseContainer<NKind extends NodeKind> extends AbstractCont
                 return (this as unknown as BlockContainer).getLocalTable()
             } else {
                 if (this.parent) {
-                    return this.parent.__table
+                    return this.parent.table
                 } else {
                     throw new Error()
                 }
             }
         }
     }
-    
-    abstract forEachChild(node: (node: Container) => void)
     
     forEachDeep(node: (node: Container) => boolean) {
         this.forEachChild(child => {
@@ -321,6 +316,129 @@ export function forEachChild<E>(container: Container, consumer: (node: Container
             break;
         case NodeKind.SourceFile:
             return visit(container.chunks)
+    }
+    return undefined
+}
+
+export function forEachChildExtended<E>(container: Container, consumer: (node: Container, key: string, index: number, depth: number) => E, depth: number = 0): E | undefined {
+    function visit<A extends E>(node: Container | Container[] | undefined | null, key: string): E {
+        if (node) {
+            if (node instanceof Array) {
+                let result: E | undefined = undefined
+                for (let i = 0; i < node.length; i++) {
+                    let nodeElement = node[i];
+                    result ||= consumer(nodeElement, key, i, depth) || forEachChildExtended(nodeElement, consumer, depth + 1) as E
+                }
+                return result! as E
+            } else {
+                return consumer(node, key, 0, depth) || forEachChildExtended(node, consumer, depth + 1) as E
+            }
+        } else {
+            return undefined as E
+        }
+    }
+    
+    switch (container.kind) {
+        case NodeKind.Block:
+            return visit(container.statements, 'statements')
+        case NodeKind.BreakStatement:
+            break;
+        case NodeKind.LabelStatement:
+            return visit(container.label, 'label')
+        case NodeKind.GotoStatement:
+            return visit(container.label, 'label')
+        case NodeKind.ReturnStatement:
+            return visit(container.arguments, 'arguments')
+        case NodeKind.IfStatement:
+            return visit(container.clauses, 'clauses')
+        case NodeKind.WhileStatement:
+            return visit(container.condition, 'condition')
+                || visit(container.block, 'block')
+        case NodeKind.DoStatement:
+            return visit(container.block, 'block')
+        case NodeKind.RepeatStatement:
+            return visit(container.condition, 'condition')
+                || visit(container.block, 'block')
+        case NodeKind.LocalStatement:
+            return visit(container.init, 'init')
+                || visit(container.variables, 'variables')
+        case NodeKind.AssignmentStatement:
+            return visit(container.init, 'init')
+                || visit(container.variables, 'variables')
+        case NodeKind.CallStatement:
+            return visit(container.expression, 'expression')
+        case NodeKind.ForNumericStatement:
+            return visit(container.start, 'start')
+                || visit(container.end, 'end')
+                || visit(container.step, 'step')
+                || visit(container.block, 'block')
+        case NodeKind.ForGenericStatement:
+            return visit(container.variables, 'variables')
+                || visit(container.iterators, 'iterators')
+                || visit(container.block, 'block')
+        case NodeKind.FunctionDeclaration:
+            return visit(container.identifier, 'identifier')
+                || visit(container.parameter, 'parameter')
+                || visit(container.block, 'block')
+        case NodeKind.Identifier:
+            break;
+        case NodeKind.StringLiteral:
+            break;
+        case NodeKind.NumericLiteral:
+            break;
+        case NodeKind.BooleanLiteral:
+            break;
+        case NodeKind.NilLiteral:
+            break;
+        case NodeKind.VarargLiteral:
+            break;
+        case NodeKind.TableConstructorExpression:
+            return visit(container.fields, 'fields')
+        case NodeKind.BinaryExpression:
+            return visit(container.left, 'left')
+                || visit(container.right, 'right')
+        case NodeKind.LogicalExpression:
+            return visit(container.left, 'left')
+                || visit(container.right, 'right')
+        case NodeKind.UnaryExpression:
+            return visit(container.argument, 'argument')
+        case NodeKind.MemberExpression:
+            return visit(container.base, 'base')
+                || visit(container.identifier, 'identifier')
+        case NodeKind.IndexExpression:
+            return visit(container.base, 'base')
+                || visit(container.index, 'index')
+        case NodeKind.CallExpression:
+            return visit(container.arguments, 'arguments')
+                || visit(container.base, 'base')
+        case NodeKind.TableCallExpression:
+            return visit(container.arguments, 'arguments')
+                || visit(container.base, 'base')
+        case NodeKind.StringCallExpression:
+            return visit(container.argument, 'argument')
+                || visit(container.base, 'base')
+        case NodeKind.IfClause:
+            return visit(container.condition, 'condition')
+                || visit(container.block, 'block')
+        case NodeKind.ElseifClause:
+            return visit(container.condition, 'condition')
+                || visit(container.block, 'block')
+        case NodeKind.ElseClause:
+            return visit(container.block, 'block')
+        case NodeKind.Chunk:
+            return visit(container.block, 'block')
+        case NodeKind.TableKey:
+            return visit(container.key, 'key')
+                || visit(container.value, 'value')
+        case NodeKind.TableKeyString:
+            return visit(container.key, 'key')
+                || visit(container.value, 'value')
+        case NodeKind.TableValue:
+            return visit(container.value, 'value')
+        case NodeKind.Comment:
+            break;
+        case NodeKind.SourceFile:
+            return visit(container.chunks, 'chunks')
     }
     return undefined
 }

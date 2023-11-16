@@ -1,8 +1,8 @@
 import {Statement} from "luaparse";
 
-import {BlockContainer} from "../components/nodes/meta/block-container.js";
+import {BlockContainer} from "./nodes/meta/block-container.js";
 
-import {Container} from "../components/types.js";
+import {Container} from "./container-types.js";
 
 export class Scope {
     readonly childScopes: [string | undefined, Container, Scope][] = []
@@ -12,10 +12,6 @@ export class Scope {
         public readonly parent?: Scope,
         public readonly block?: BlockContainer,
     ) {
-    }
-    
-    get depth() {
-        return this.parent ? this.parent.depth + 1 : 1
     }
     
     static createBody(container: Container, statements: Statement[], name?: string) {

@@ -1,7 +1,8 @@
-import {ExpressionContainer, NodeKind} from "../../types.js";
+import {ExpressionContainer, NodeKind} from "../../container-types.js";
 import {BaseContainer} from "../../base-container.js";
 import {Variable} from "../../../table/symbol-table.js";
-import {LuaTiError} from "../../../error/lua-ti-error.js";
+import {LuaTiErrorHelper} from "../../../error/lua-ti-error.js";
+import {Type} from "../../../type/type.js";
 
 export type ExpressionContainerKind =
     | NodeKind.Identifier
@@ -25,30 +26,38 @@ export type ExpressionContainerKind =
     | NodeKind.TableKeyString
 
 export abstract class AbstractExpressionContainer<E extends ExpressionContainerKind> extends BaseContainer<E> {
-    __symbol: Variable | undefined
+    private __symbol: Variable | undefined
+    private __type: Type | undefined
+    private __narrow
     __immutable: boolean = false
     
-    getEntry<E extends Error>(err: E) {
+    set symbol(symbol: Variable) {
+        if (symbol) {
+            if (this.__symbol) {
+                throw LuaTiErrorHelper.overwriteSymbol(this as ExpressionContainer, this.__symbol, symbol)
+            } else {
+                this.__symbol = symbol
+            }
+        } else {
+            // Just in case; should be impossible.
+            throw LuaTiErrorHelper.CannotAssignUndefinedSymbol(this as ExpressionContainer)
+        }
+    }
+    
+    get symbol(): Variable {
         if (!this.__symbol) {
-            throw err
+            throw LuaTiErrorHelper.noSymbol(this as ExpressionContainer)
         } else {
             return this.__symbol
         }
     }
     
-    setEntry<E extends Error>(variable: Variable, err: E) {
-        if (this.__symbol) {
-            throw err
-        } else {
-            this.__symbol = variable
-        }
+    set type(type: Type | undefined) {
+        this.__type = type
     }
     
-    hasEntry() {
-        return !!this.__symbol
+    get type(): Type | undefined {
+        return this.__type
     }
     
-    setEntryTo(container: ExpressionContainer) {
-        this.setEntry(container.getEntry(LuaTiError.noEntry(container, 'setEntryTo')), LuaTiError.overwriteEntry(this as ExpressionContainer, container, 'setEntryTo'))
-    }
 }

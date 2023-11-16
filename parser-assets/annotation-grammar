@@ -1,0 +1,251 @@
+start
+    = list:AnnotationList
+        { return {
+            list: list,
+            location: location()
+        } }
+
+AnnotationList
+    = left:Annotation
+        { return [
+            left
+        ] }
+    / left:Annotation
+    LINE_BREAK
+    right:AnnotationList
+        { return [
+            left,
+            ...right
+        ] }
+
+Annotation
+    = ClassAnnotation
+    / AliasAnnotation
+    / DescriptionAnnotation
+    / ParameterAnnotation
+    / SeeAnnotation
+    / ReturnAnnotation
+    / FieldAnnotation
+    / NameAnnotation
+
+NameAnnotation
+    = "---@name"
+    SPACE name:Ident
+        { return {
+            kind: AnnotationKind.Name,
+            name: name,
+            location: location()
+        } }
+
+DescriptionAnnotation
+    = "---@description"
+    SPACE text:Text
+        { return {
+            kind: AnnotationKind.Description,
+            text: text,
+            location: location()
+        } }
+
+SeeAnnotation
+    = "---@see"
+    SPACE list:NameList
+        { return {
+            kind: AnnotationKind.See,
+            list: list,
+            location: location()
+        } }
+
+ParameterAnnotation
+    = "---@param"
+    SPACE name:Ident opt:OPTIONAL?
+    SPACE type:Type
+        { return {
+            kind: AnnotationKind.Parameter,
+            name: name,
+            type: type,
+            isOptional: true,
+            location: location()
+        } }
+
+ReturnAnnotation
+    = "---@return"
+    SPACE type:ReturnType
+        { return {
+            kind: AnnotationKind.Return,
+            type: (()=>{
+                if(type.list.length === 1){
+                    return type.list[0]
+                } else {
+                    return type
+                }
+            })(),
+            location: location()
+        } }
+ReturnType
+    = left:BaseType right:(',' _ right:BaseType { return right })*
+        { return {
+            kind: TypeKind.List,
+            list: [left,...right]
+        } }
+
+AliasAnnotation
+    = "---@alias"
+    SPACE name:Ident
+    SPACE type:UnionType
+        { return {
+            kind: AnnotationKind.Alias,
+            name:name,
+            type: type,
+            location: location()
+        } }
+
+FieldAnnotation
+    = "---@field"
+    SPACE name:Ident opt:OPTIONAL?
+    SPACE type:Type
+        { return {
+            kind: AnnotationKind.Field,
+            name: name,
+            type: type,
+            isOptional: !!opt,
+            location: location()
+        } }
+
+ClassAnnotation
+    = "---@class"
+    SPACE name:Ident
+        { return {
+            kind: AnnotationKind.Class,
+            fields: [],
+            name: name,
+            location: location()
+        } }
+
+NameList
+    = _NameList
+_NameList
+    = element:Ident
+    SPACE ","
+    SPACE list:_NameList
+        { return [element,...list] }
+    / element:Ident
+        { return [element] }
+
+Type
+    = type:BaseType '[]'
+        { return {
+            kind: TypeKind.Array,
+            baseType: type
+        } }
+    / BaseType
+
+BaseType
+    = NonUnionType
+    / UnionType
+    / FunctionType
+
+NonUnionType
+    = PrimitiveType
+    / NamedType
+
+FunctionType
+    = '('
+    _ parameter:ParameterDeclarationList?
+    _ ')'
+    _ '=>'
+    _ ret:Type
+        { return {
+            kind: TypeKind.Function,
+            parameter: parameter,
+            returns: ret
+        } }
+
+ParameterDeclarationList
+    = left:ParameterDeclaration
+        { return [left] }
+    / left:ParameterDeclaration ',' right:ParameterDeclarationList
+        { return [left,...right] }
+
+ParameterDeclaration "parameter-declaration"
+    = name:Ident opt:OPTIONAL?
+    _ ":"
+    _ type:Type
+        { return {
+            kind: TypeKind.Parameter,
+            name: name,
+            type: type,
+            isOptional: !!opt
+        } }
+
+PrimitiveType
+    = "nil"
+        { return {
+            kind: TypeKind.Null,
+            location: location()
+        } }
+    / "number"
+        { return {
+            kind: TypeKind.Number,
+            location: location()
+        } }
+    / "string"
+        { return {
+            kind: TypeKind.String,
+            location: location()
+        } }
+    / "boolean"
+        { return {
+            kind: TypeKind.Boolean,
+            location: location()
+        } }
+    / "any"
+        { return {
+            kind: TypeKind.Any,
+            location: location()
+        } }
+    / "void"
+        { return {
+            kind: TypeKind.Void,
+            location: location()
+        } }
+
+NamedType
+    = name:Ident
+        { return {
+            kind: TypeKind.Name,
+            name: name,
+            location: location()
+        } }
+
+UnionType
+    = list:_UnionTypeList
+        { return {
+            kind: TypeKind.Union,
+            list: list,
+            location: location()
+        } }
+_UnionTypeList
+    = left:NonUnionType
+    SPACE "|"
+    SPACE right:_UnionTypeList
+        { return [left, ...right] }
+    / left:NonUnionType
+        { return [left] }
+
+Ident "ident"
+    = [A-Za-z_][A-Za-z_0-9]* { return text().trim() }
+
+SPACE "whitespace"
+    = [ ]+
+
+_ "optional-whitespace"
+    = SPACE?
+
+Text "text"
+    = .* { return text() }
+
+LINE_BREAK "ln"
+    = [\n\r]+
+
+OPTIONAL "?"
+    = '?'

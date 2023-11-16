@@ -4,6 +4,8 @@ import {entries} from "../table/table-builder.js";
 export interface StringBuilder {
     println(...text: any[])
     
+    printlnPad(depth: number, ...text: any[])
+    
     print(...text: any[])
     
     addIndent(style: string)
@@ -22,7 +24,7 @@ export interface StringBuilder {
     
     setColors(b: boolean): this;
     
-    table(entries: string[][], options:{
+    table(entries: string[][], options: {
         delimiter: string
     }): void
 }
@@ -64,6 +66,13 @@ export function createStringBuilder(): StringBuilder {
                 text += `${indentStack.join('') + _text[0]}: ${_text[1]}\n`
             } else {
                 text += `${indentStack.join('') + _text[0]}\n`
+            }
+        },
+        printlnPad(depth: number, ..._text: any[]) {
+            if (_text.length > 1) {
+                this.println(''.padEnd(depth * 4, ' ') + `${_text[0]}: [${_text.slice(1).join(', ')}]`)
+            } else {
+                this.println(''.padEnd(depth * 4, ' ') + `${_text[0]}`)
             }
         },
         list<E>(key: string, list: E[], element: (element: E, index: number) => void, style?: string) {

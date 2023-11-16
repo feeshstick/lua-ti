@@ -1,6 +1,6 @@
 import {BaseContainer} from "../../base-container.js";
-import {Block, Container, createContainer, NodeKind, StatementContainer} from "../../types.js";
-import {Scope} from "../../../scope/scope.js";
+import {Block, Container, createContainer, NodeKind, StatementContainer} from "../../container-types.js";
+import {Scope} from "../../scope.js";
 import {createTable, LocalTable} from "../../../table/symbol-table.js";
 
 export class BlockContainer extends BaseContainer<NodeKind.Block> {
@@ -14,12 +14,17 @@ export class BlockContainer extends BaseContainer<NodeKind.Block> {
         scope: Scope,
     ) {
         super(scope)
-        this.localTable = createTable(this.parent.__table)
+        this.localTable = createTable(this.parent.table)
         this.localTable.name = this.parent.kind + ' ' + this.parent.id
-        this.statements = this.node.statements.map(statement => createContainer(statement, this, this.scope) as StatementContainer)
-    }
-    
-    print() {
+        this.statements = this.node.statements
+            .filter(statement => {
+                if (parent.compilerOptions.parserOptions) {
+                    return !parent.compilerOptions.parserOptions.ignore.includes(statement.type as NodeKind);
+                } else {
+                    return true
+                }
+            })
+            .map(statement => createContainer(statement, this, this.scope) as StatementContainer)
     }
     
     forEachChild(node: (node: StatementContainer) => void) {

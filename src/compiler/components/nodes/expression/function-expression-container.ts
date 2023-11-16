@@ -1,21 +1,21 @@
 import {FunctionDeclaration} from "luaparse/lib/ast.js";
 import {IdentifierContainer} from "./literal/identifier-container.js";
 import {VarargLiteralContainer} from "./literal/vararg-literal-container.js";
-import {Scope} from "../../../scope/scope.js";
+import {Scope} from "../../scope.js";
 import {AbstractExpressionContainer} from "./abstract-expression-container.js";
 
-import {Container, createContainer, ExpressionContainer, NodeKind, ParameterContainer} from "../../types.js";
+import {Container, createContainer, NodeKind, ParameterContainer} from "../../container-types.js";
 import {MemberExpressionContainer} from "./member-expression-container.js";
 
 import {BlockContainer} from "../meta/block-container.js";
-import {ReturnStatementContainer} from "../statement/return-statement-container.js";
+import {SignatureAnnotation} from "../../../annotation/annotation.js";
 
 export class FunctionExpressionContainer extends AbstractExpressionContainer<NodeKind.FunctionDeclaration> {
     public readonly parameter: Array<IdentifierContainer | VarargLiteralContainer>
     public override readonly block: BlockContainer
     public readonly identifier: IdentifierContainer | MemberExpressionContainer | null
     public readonly kind = NodeKind.FunctionDeclaration;
-    _returns: ReturnStatementContainer[] = [];
+    public signatureAnnotation: SignatureAnnotation | undefined
     
     constructor(
         public readonly node: FunctionDeclaration,

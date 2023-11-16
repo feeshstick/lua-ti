@@ -2,8 +2,8 @@ import {MemberExpression} from "luaparse/lib/ast.js";
 import {IdentifierContainer} from "./literal/identifier-container.js";
 import {AbstractExpressionContainer} from "./abstract-expression-container.js";
 
-import {Container, createContainer, ExpressionContainer, NodeKind} from "../../types.js";
-import {Scope} from "../../../scope/scope.js";
+import {Container, createContainer, ExpressionContainer, NodeKind} from "../../container-types.js";
+import {Scope} from "../../scope.js";
 
 export class MemberExpressionContainer extends AbstractExpressionContainer<NodeKind.MemberExpression> {
     public readonly base: ExpressionContainer;
@@ -18,10 +18,6 @@ export class MemberExpressionContainer extends AbstractExpressionContainer<NodeK
         super(scope);
         this.base = createContainer(node.base, this, this.scope) as ExpressionContainer;
         this.identifier = createContainer(node.identifier, this, this.scope) as IdentifierContainer;
-    }
-    
-    get isSelfRef(): boolean {
-        return this.node.indexer === ':'
     }
     
     get indexer(): MemberExpression['indexer'] {

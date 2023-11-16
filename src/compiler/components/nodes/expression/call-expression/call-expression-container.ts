@@ -1,13 +1,12 @@
 import {CallExpression} from "luaparse/lib/ast.js";
-import {Scope} from "../../../../scope/scope.js";
+import {Scope} from "../../../scope.js";
 import {AbstractExpressionContainer} from "../abstract-expression-container.js";
 
-import {Container, createContainer, ExpressionContainer, ExpressionType, NodeKind} from "../../../types.js";
+import {Container, createContainer, ExpressionContainer, NodeKind} from "../../../container-types.js";
 
 export class CallExpressionContainer extends AbstractExpressionContainer<NodeKind.CallExpression> {
     public readonly base: ExpressionContainer
     public readonly arguments: ExpressionContainer[]
-    public type = ExpressionType.Unknown
     public readonly kind = NodeKind.CallExpression
     
     constructor(

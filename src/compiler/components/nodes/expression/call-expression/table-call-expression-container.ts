@@ -1,8 +1,8 @@
 import {TableCallExpression} from "luaparse/lib/ast.js";
-import {Scope} from "../../../../scope/scope.js";
+import {Scope} from "../../../scope.js";
 import {AbstractExpressionContainer} from "../abstract-expression-container.js";
 
-import {Container, createContainer, ExpressionContainer, NodeKind} from "../../../types.js";
+import {Container, createContainer, ExpressionContainer, NodeKind} from "../../../container-types.js";
 
 export class TableCallExpressionContainer extends AbstractExpressionContainer<NodeKind.TableCallExpression> {
     public readonly base: ExpressionContainer

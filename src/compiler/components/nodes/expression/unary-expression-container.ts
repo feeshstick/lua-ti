@@ -1,8 +1,14 @@
 import {UnaryExpression} from "luaparse/lib/ast.js";
-import {Scope} from "../../../scope/scope.js";
+import {Scope} from "../../scope.js";
 import {AbstractExpressionContainer} from "./abstract-expression-container.js";
 
-import {Container, createContainer, ExpressionContainer, NodeKind, UnaryExpressionOperator} from "../../types.js";
+import {
+    Container,
+    createContainer,
+    ExpressionContainer,
+    NodeKind,
+    UnaryExpressionOperator
+} from "../../container-types.js";
 
 export class UnaryExpressionContainer extends AbstractExpressionContainer<NodeKind.UnaryExpression> {
     public readonly argument: ExpressionContainer
