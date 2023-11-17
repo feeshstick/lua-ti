@@ -2,7 +2,7 @@ import {Scope} from "./scope.js";
 import {Container, createContainer, ExtendedNode, NodeKind, NodeRef} from "./container-types.js";
 
 import {BlockContainer} from "./nodes/meta/block-container.js";
-import {SourceFileContainer} from "./nodes/meta/source-file-container.js";
+import {Program} from "./nodes/meta/program.js";
 import {ChunkContainer} from "./nodes/meta/chunk-container.js";
 import {SymbolTable} from "../table/symbol-table.js";
 import {CompilerOptions} from "../compiler-options/compiler-options.js";
@@ -157,7 +157,7 @@ export abstract class BaseContainer<NKind extends NodeKind> extends AbstractCont
             return this.__tableOverwrite
         } else {
             if (this.kind === NodeKind.SourceFile) {
-                return (this as unknown as SourceFileContainer).getGlobalTable()
+                return (this as unknown as Program).getGlobalTable()
             } else if (this.kind === NodeKind.Block) {
                 return (this as unknown as BlockContainer).getLocalTable()
             } else {

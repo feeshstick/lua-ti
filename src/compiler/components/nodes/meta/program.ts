@@ -8,7 +8,7 @@ import {createTable, GlobalTable} from "../../../table/symbol-table.js";
 import {CompilerOptions} from "../../../compiler-options/compiler-options.js";
 import {Comment} from "luaparse/lib/ast.js";
 
-export class SourceFileContainer extends BaseContainer<NodeKind.SourceFile> {
+export class Program extends BaseContainer<NodeKind.SourceFile> {
     static build(config: {
         declarations: {
             dir: string
@@ -21,7 +21,7 @@ export class SourceFileContainer extends BaseContainer<NodeKind.SourceFile> {
             compilerOptions: CompilerOptions
         }
     }) {
-        return new SourceFileContainer({
+        return new Program({
             files: [...config.declarations.flatMap(declaration => {
                 return declaration.files.map(file => {
                     return {
@@ -45,7 +45,7 @@ export class SourceFileContainer extends BaseContainer<NodeKind.SourceFile> {
     }
     
     static from(root: string, ...files: string[]) {
-        return new SourceFileContainer({
+        return new Program({
             files: [...files.map(file => {
                 return {
                     path: root + '/' + file,

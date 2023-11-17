@@ -4,7 +4,7 @@ import chalk from "chalk";
 import fs from "fs";
 import {createStringBuilder} from "./compiler/utility/string-builder.js";
 import {testRunner} from "./test-runner.js";
-import {SourceFileContainer} from "./compiler/components/nodes/meta/source-file-container.js";
+import {Program} from "./compiler/components/nodes/meta/program.js";
 import {ExpressionContainer, NodeKind} from "./compiler/components/container-types.js";
 import {entries} from "./compiler/table/table-builder.js";
 
@@ -72,7 +72,7 @@ function generateSymbolTable(config: ProjectConfiguration) {
 }
 
 function printConstants(corePath: string) {
-    const sourceFiles = SourceFileContainer.from(corePath, ...[
+    const sourceFiles = Program.from(corePath, ...[
         'archetype_setcode_constants.lua',
         'card_counter_constants.lua',
         'constant.lua',

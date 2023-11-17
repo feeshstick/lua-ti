@@ -33,7 +33,7 @@ import {TableValueContainer} from "compiler/components/nodes/expression/table/ta
 import {UnaryExpressionContainer} from "compiler/components/nodes/expression/unary-expression-container.js";
 import {BlockContainer} from "compiler/components/nodes/meta/block-container.js";
 import {ChunkContainer} from "compiler/components/nodes/meta/chunk-container.js";
-import {SourceFileContainer} from "compiler/components/nodes/meta/source-file-container.js";
+import {Program} from "compiler/components/nodes/meta/program.js";
 import {
     AssignmentStatementContainer
 } from "compiler/components/nodes/statement/assign/assignment-statement-container.js";
@@ -148,7 +148,7 @@ function flagToString(flag: ContainerFlag) {
     return out.text
 }
 
-export function buildTable(sourceFile: SourceFileContainer) {
+export function buildTable(sourceFile: Program) {
     
     let symbolCounter = 0
     const annotationParser = new AnnotationParser()
@@ -187,7 +187,7 @@ export function buildTable(sourceFile: SourceFileContainer) {
     }
     
     const tableVisitor: TableVisitor = {
-        [NodeKind.SourceFile]: function (node: SourceFileContainer, context: TableVisitorContext): void {
+        [NodeKind.SourceFile]: function (node: Program, context: TableVisitorContext): void {
             for (let chunk of node.chunks) {
                 visit(chunk, context)
             }

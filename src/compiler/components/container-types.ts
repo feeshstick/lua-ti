@@ -38,7 +38,7 @@ import {TableKeyStringContainer} from "./nodes/expression/table/table-entry/tabl
 import {TableValueContainer} from "./nodes/expression/table/table-entry/table-value-container.js";
 import {CommentContainer} from "./nodes/trivia/comment-trivia-container.js";
 import {ChunkContainer} from "./nodes/meta/chunk-container.js";
-import {SourceFileContainer} from "./nodes/meta/source-file-container.js";
+import {Program} from "./nodes/meta/program.js";
 import {CompilerOptions} from "../compiler-options/compiler-options.js";
 
 export enum NodeKind {
@@ -266,7 +266,7 @@ export type Container =
     | TableKeyStringContainer
     | TableValueContainer
     | CommentContainer
-    | SourceFileContainer
+    | Program
     | BlockContainer
 
 export enum BinaryExpressionOperator {

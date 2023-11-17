@@ -1,4 +1,4 @@
-import {SourceFileContainer} from "./compiler/components/nodes/meta/source-file-container.js";
+import {Program} from "./compiler/components/nodes/meta/program.js";
 import {buildTable} from "./compiler/table/table-builder.js";
 import {NodeKind} from "./compiler/components/container-types.js";
 import fs from "fs";
@@ -12,7 +12,7 @@ export function testRunner() {
         console.log(`Test: ${chalk.rgb(128, 188, 255)(`"${file}"`)}`)
         try {
             // proper Project class will be created later
-            const sourceFile = SourceFileContainer.build({
+            const sourceFile = Program.build({
                 // declaration files and constants
                 // constants, ignore CallStatements because Duel.load... hasn't been loaded yet
                 declarations: [
