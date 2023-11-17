@@ -573,29 +573,6 @@ export function buildTable(sourceFile: SourceFileContainer) {
                 node.symbol = call.returns
             }
         },
-        /**
-         *
-         * This is the main reason why a custom parser would be good.
-         * by wrapping Identifier or Expressions in List with flags.
-         * e.g.:
-         *    LocalDeclaration
-         *          ::= LocalFunctionDeclaration // <- on bubble, flag is known by LocalDeclaration as parent
-         *    LocalFunctionDeclaration
-         *          ::= local FunctionDeclaration
-         *    GlobalFunctionDeclaration
-         *          ::= FunctionDeclaration
-         *    FunctionDeclaration
-         *          ::= function Variable FunctionPrototype end
-         *    FunctionExpression
-         *          ::= function FunctionPrototype
-         *    FunctionPrototype
-         *          ::= ( ParameterDeclarationList ) Block
-         *    ParameterDeclarationList
-         *          ::= ExpressionList // <- on bubble, flag is known by ParameterDeclarationList as parent
-         *
-         * @param node
-         * @param context
-         */
         [NodeKind.Identifier]: function (node: IdentifierContainer): void {
             const entryList = node.table.lookupTrack(node.name)
             if (entryList) {
