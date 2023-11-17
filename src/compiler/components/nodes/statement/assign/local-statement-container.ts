@@ -23,7 +23,6 @@ export class LocalStatementContainer extends BaseContainer<NodeKind.LocalStateme
         }
         this.variables = node.variables.map(x => createContainer(x, this, this.scope)) as IdentifierContainer[]
         for (let variable of this.variables) {
-            variable._stopPropagation = true
         }
     }
     

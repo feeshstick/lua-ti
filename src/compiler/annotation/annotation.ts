@@ -10,6 +10,7 @@ export enum AnnotationKind {
     Class,
     Name,
     Signature,
+    Constructor,
 }
 
 export interface AbstractAnnotation<E extends AnnotationKind> {
@@ -49,6 +50,10 @@ export interface DescriptionAnnotation extends AbstractAnnotation<AnnotationKind
     text: string
 }
 
+export interface ConstructorAnnotation extends AbstractAnnotation<AnnotationKind.Constructor> {
+    name: string
+}
+
 export interface ClassAnnotation extends AbstractAnnotation<AnnotationKind.Class> {
     description: DescriptionAnnotation | undefined
     name: string
@@ -56,6 +61,7 @@ export interface ClassAnnotation extends AbstractAnnotation<AnnotationKind.Class
 }
 
 export interface SignatureAnnotation extends AbstractAnnotation<AnnotationKind.Signature> {
+    _constructor: ConstructorAnnotation | undefined
     name: NameAnnotation | undefined
     description: DescriptionAnnotation | undefined
     parameter: ParameterAnnotation[]
@@ -75,6 +81,7 @@ export type Annotation =
     | DescriptionAnnotation
     | ClassAnnotation
     | NameAnnotation
+    | ConstructorAnnotation
 
 export const LuaBasicType = {
     Number: {kind: TypeKind.Number} as NumberType,

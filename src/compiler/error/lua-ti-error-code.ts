@@ -13,4 +13,6 @@ export enum LuaTiErrorCode {
     NoStringCall,
     NoTableCall,
     PropertyXDoesNotExistOnTypeY,
+    AssignToConstant,
+    OverwriteImmutable,
 }

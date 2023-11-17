@@ -4,8 +4,9 @@ Effect = {}
 ---@name CreateEffect
 ---@description CreateEffect
 ---@see CreateEffect
----@param pcard Card 
----@return any
+---@param pcard Card
+---@return Effect
+---@constructor Effect
 function Effect.CreateEffect(pcard) end
 
 ---@name GlobalEffect

@@ -82,7 +82,6 @@ export function isCallFlag(flag: ContainerFlag) {
 }
 
 export abstract class BaseContainer<NKind extends NodeKind> extends AbstractContainer<NKind> {
-    public _stopPropagation: boolean = false
     public abstract readonly kind: NKind
     public abstract readonly node: NodeRef<NKind extends ExtendedNode['type'] ? ExtendedNode['type'] : never>
     public abstract parent: Container | undefined

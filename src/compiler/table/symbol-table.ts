@@ -8,7 +8,7 @@ import {
 import {
     TableCallExpressionContainer
 } from "../components/nodes/expression/call-expression/table-call-expression-container.js";
-import {Type} from "../type/type.js";
+import {ClassType, Type} from "../type/type.js";
 import {CompilerOptions} from "../compiler-options/compiler-options.js";
 import {entries} from "./table-builder.js";
 
@@ -36,26 +36,29 @@ export interface AbstractSymbolTable<E extends LSymbolTableKind> extends Abstrac
     parent: SymbolTable | undefined
     kind: E
     name?: string
-    member: ObjectMap<Variable>
-    parameter?: ObjectMap<Variable>
-    semi?: ObjectMap<Variable>
+    member: ObjectMap<Symbol>
+    constant: ObjectMap<Symbol>
+    parameter?: ObjectMap<Symbol>
+    semi?: ObjectMap<Symbol>
     bubbleBreak: BubbleBreak
     
-    entries(): [string, Variable][]
+    entries(): [string, Symbol][]
     
-    lookup(name: string, bubbles?: BubbleBreak): Variable | undefined
+    kindEntries(): [MemberKind | 'constant', string, Symbol][]
     
-    lookupTrack(name: string): [Variable, MemberKind, BubbleBreak[]] | undefined
+    lookup(name: string, bubbles?: BubbleBreak): Symbol | undefined
+    
+    lookupTrack(name: string): [Symbol, MemberKind, BubbleBreak[]] | undefined
     
     has(name: string, bubbles?: BubbleBreak): boolean
     
-    enter(name: string, set: Variable, location: MemberKind, compilerOptions: CompilerOptions): Variable
+    enter(name: string, set: Symbol, location: MemberKind, compilerOptions: CompilerOptions): Symbol
     
     create(): LocalTable
     
-    getSemi(): ObjectMap<Variable>
+    getSemi(): ObjectMap<Symbol>
     
-    getParameter(): ObjectMap<Variable>
+    getParameter(): ObjectMap<Symbol>
     
     global: SymbolTable
 }
@@ -71,18 +74,18 @@ export interface GlobalTable extends AbstractSymbolTable<LSymbolTableKind.Global
 export type SymbolTable = LocalTable | GlobalTable
 
 export interface CallArgument {
-    symbol: Variable
+    symbol: Symbol
     declaration: ExpressionContainer
 }
 
 export interface Call {
     arguments: Array<CallArgument>
     declaration: CallExpressionContainer | StringCallExpressionContainer | TableCallExpressionContainer
-    returns: Variable
+    returns: Symbol
 }
 
 export interface ParameterDeclaration {
-    symbol: Variable
+    symbol: Symbol
 }
 
 export interface FunctionDeclaration {
@@ -91,20 +94,28 @@ export interface FunctionDeclaration {
     declaration?: FunctionExpressionContainer
     returns: Array<{
         declaration?: ReturnStatementContainer,
-        arguments: Variable[]
+        arguments: Symbol[]
     }>
 }
 
-export interface Variable extends AbstractSymbol<LSymbolTableKind.Variable> {
+export interface ObjectData {
+    type: ClassType
+    properties: {
+        [key: string]: any
+    }
+}
+
+export interface Symbol extends AbstractSymbol<LSymbolTableKind.Variable> {
+    object: ObjectData | undefined
     id: number
     name?: string
     kind: LSymbolTableKind.Variable
     flag: SymbolFlag
     declarations: Array<Container>
-    member?: ObjectMap<Variable>
+    member?: ObjectMap<Symbol>
     indexedMember: {
-        key: Variable
-        value: Variable
+        key: Symbol
+        value: Symbol
     }[]
     calls?: Array<Call>
     functionDeclaration?: FunctionDeclaration
@@ -112,7 +123,11 @@ export interface Variable extends AbstractSymbol<LSymbolTableKind.Variable> {
     type: Type | undefined
 }
 
-export function addCallToVariable(variable: Variable, call: Call) {
+export interface ObjectSymbol extends Symbol {
+    object: ObjectData
+}
+
+export function addCallToVariable(variable: Symbol, call: Call) {
     if (variable.calls) {
         variable.calls.push(call)
     } else {
@@ -120,7 +135,7 @@ export function addCallToVariable(variable: Variable, call: Call) {
     }
 }
 
-export function addMemberToVariable(name: string, variable: Variable, member: Variable): Variable {
+export function addMemberToVariable(name: string, variable: Symbol, member: Symbol): Symbol {
     if (variable.member) {
         variable.member[name] = member
     } else {
@@ -195,6 +210,7 @@ export function createTable(parent?: SymbolTable): SymbolTable {
             kind: kind,
             parent: parent,
             member: {},
+            constant: {},
             parameter: {},
             semi: {},
             bubbleBreak: BubbleBreak.LocalBubble,
@@ -204,13 +220,17 @@ export function createTable(parent?: SymbolTable): SymbolTable {
             has(name: string, bubbles: BubbleBreak): boolean {
                 return !!this.lookup(name, bubbles)
             },
-            enter(name: string, table: Variable, location: 'member' | 'parameter' | 'semi', compilerOptions: CompilerOptions): Variable {
+            enter(name: string, table: Symbol, location: 'member' | 'parameter' | 'semi', compilerOptions: CompilerOptions): Symbol {
                 if (this.has(name, BubbleBreak.GlobalBubble)) {
                     throw new Error()
                 }
                 switch (location) {
                     case "member":
-                        this.member[name] = table
+                        if (compilerOptions.fileFlag === 'constants') {
+                            this.constant[name] = table
+                        } else {
+                            this.member[name] = table
+                        }
                         break;
                     case "parameter":
                         this.getParameter()[name] = table
@@ -228,6 +248,8 @@ export function createTable(parent?: SymbolTable): SymbolTable {
                     return [this.semi[name], 'semi', [this.bubbleBreak]]
                 } else if (this.member && this.member[name]) {
                     return [this.member[name], 'member', [this.bubbleBreak]]
+                } else if (this.constant && this.constant[name]) {
+                    return [this.constant[name], 'member', [this.bubbleBreak]]
                 } else if (this.parent) {
                     const variable = this.parent.lookupTrack(name)
                     if (variable) {
@@ -244,6 +266,8 @@ export function createTable(parent?: SymbolTable): SymbolTable {
                     return this.semi[name]
                 } else if (this.member && this.member[name]) {
                     return this.member[name]
+                } else if (this.constant && this.constant[name]) {
+                    return this.constant[name]
                 } else if (bubbles && this.parent) {
                     if (bubbles === BubbleBreak.FunctionBubble && this.bubbleBreak === BubbleBreak.FunctionBubble) {
                         return undefined
@@ -254,24 +278,48 @@ export function createTable(parent?: SymbolTable): SymbolTable {
                     return undefined
                 }
             },
-            getSemi(): ObjectMap<Variable> {
+            getSemi(): ObjectMap<Symbol> {
                 if (!this.semi) {
                     this.semi = {}
                 }
                 return this.semi
             },
-            getParameter(): ObjectMap<Variable> {
+            getParameter(): ObjectMap<Symbol> {
                 if (!this.parameter) {
                     this.parameter = {}
                 }
                 return this.parameter
             },
-            entries(): [string, Variable][] {
+            entries(): [string, Symbol][] {
                 return [
                     ...entries(this.parameter || {}),
                     ...entries(this.semi || {}),
                     ...entries(this.member)
-                ] as [string, Variable][]
+                ] as [string, Symbol][]
+            },
+            kindEntries() {
+                const _entries: [MemberKind | 'constant', string, Symbol][] = []
+                if (this.parameter) {
+                    for (let [key, val] of entries(this.parameter)) {
+                        _entries.push(['parameter', key as string, val])
+                    }
+                }
+                if (this.member) {
+                    for (let [key, val] of entries(this.member)) {
+                        _entries.push(['member', key as string, val])
+                    }
+                }
+                if (this.constant) {
+                    for (let [key, val] of entries(this.constant)) {
+                        _entries.push(['constant', key as string, val])
+                    }
+                }
+                if (this.semi) {
+                    for (let [key, val] of entries(this.semi)) {
+                        _entries.push(['semi', key as string, val])
+                    }
+                }
+                return _entries
             },
             get global(): GlobalTable {
                 if (this.kind === LSymbolTableKind.GlobalEnvironment) {

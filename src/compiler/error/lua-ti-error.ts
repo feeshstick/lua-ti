@@ -3,8 +3,10 @@ import {Container, ExpressionContainer, NodeKind} from "../components/container-
 import {ChunkContainer} from "../components/nodes/meta/chunk-container.js";
 import {LuaTiErrorCode} from "./lua-ti-error-code.js";
 import {LuaTiErrorLevel} from "./lua-ti-error-level.js";
-import {BubbleBreak, MemberKind, Variable} from "../table/symbol-table.js";
+import {BubbleBreak, GlobalTable, MemberKind, Symbol} from "../table/symbol-table.js";
 import {Type, TypeKind} from "../type/type.js";
+import {IdentifierContainer} from "../components/nodes/expression/literal/identifier-container.js";
+import {entries} from "../table/table-builder.js";
 
 export class LuaTiError extends Error {
     constructor(
@@ -12,7 +14,7 @@ export class LuaTiError extends Error {
         kind: LuaTiErrorCode,
         message: string
     ) {
-        super(message);
+        super(`LuaTi ${LuaTiErrorLevel[level]} ${LuaTiErrorCode[kind]} : ${message}`);
         Object.setPrototypeOf(Error, LuaTiError.prototype)
         console.log(this.cause)
     }
@@ -42,7 +44,7 @@ export function typeToString(right: Type | undefined) {
             case TypeKind.Name:
                 return `${right.name}`
             case TypeKind.List:
-                return `[${right.list.map(x => typeToString(x)).join(', ')}]`
+                return `${right.list.map(x => typeToString(x)).join(', ')}`
             case TypeKind.Union:
                 return `(${right.list.map(x => typeToString(x)).join(' | ')})`
             case TypeKind.Array:
@@ -53,10 +55,6 @@ export function typeToString(right: Type | undefined) {
                 return `${right.name}`
             case TypeKind.Parameter:
                 return `${right.name}${right.isOptional ? '?' : ''} : ${typeToString(right.type)}`
-            case TypeKind.Conditional:
-                return `${typeToString(right.left)} || ${typeToString(right.right)}`
-            case TypeKind.TypeRef:
-                break;
             case TypeKind.ClassMember:
                 return
         }
@@ -67,7 +65,7 @@ export function typeToString(right: Type | undefined) {
 }
 
 export const LuaTiErrorHelper = {
-    overwriteSymbol(node: Container, left: Variable, right: Variable, message?: string): LuaTiError {
+    overwriteSymbol(node: Container, left: Symbol, right: Symbol, message?: string): LuaTiError {
         return new LuaTiError(
             LuaTiErrorLevel.Internal,
             LuaTiErrorCode.OverwriteSymbol,
@@ -89,16 +87,16 @@ export const LuaTiErrorHelper = {
             return node.errLoc
         }
     },
-    duplicateDeclarationAsParameter(node: ExpressionContainer, symbol: Variable, symbolKind: MemberKind, bubbles: BubbleBreak[]) {
+    duplicateDeclarationAsParameter(node: ExpressionContainer, symbol: Symbol, symbolKind: MemberKind, bubbles: BubbleBreak[]) {
         return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.DuplicateDeclarationAsParameter, `symbol=${symbol} kind="${symbolKind}" ${bubbles.join(',')} ${this.location(node)} ${this.location(node)}`)
     },
-    duplicateDeclarationAsForLoopVariable(node: ExpressionContainer, symbol: Variable, symbolKind: MemberKind, bubbles: BubbleBreak[]) {
+    duplicateDeclarationAsForLoopVariable(node: ExpressionContainer, symbol: Symbol, symbolKind: MemberKind, bubbles: BubbleBreak[]) {
         return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.DuplicateDeclarationAsParameter, `symbol=${symbol} kind="${symbolKind}" ${bubbles.join(',')} ${this.location(node)} ${this.location(node)}`)
     },
-    duplicateDeclarationAsLocalVariable(node: ExpressionContainer, symbol: Variable, symbolKind: MemberKind, bubbles: BubbleBreak[]) {
+    duplicateDeclarationAsLocalVariable(node: ExpressionContainer, symbol: Symbol, symbolKind: MemberKind, bubbles: BubbleBreak[]) {
         return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.DuplicateDeclarationAsParameter, `symbol=${symbol} kind="${symbolKind}" ${bubbles.join(',')} ${this.location(node)} ${this.location(node)}`)
     },
-    memberKindMismatch(node: ExpressionContainer, symbol: Variable, actualKind: MemberKind, expectedKind: MemberKind, bubbles: BubbleBreak[]) {
+    memberKindMismatch(node: ExpressionContainer, symbol: Symbol, actualKind: MemberKind, expectedKind: MemberKind, bubbles: BubbleBreak[]) {
         return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.DuplicateDeclarationAsParameter, `symbol=${symbol} actual=${actualKind} expected="${expectedKind}" ${bubbles.join(',')} ${this.location(node)}`)
     },
     CallUndefinedSymbol(node: ExpressionContainer): LuaTiError {
@@ -115,5 +113,11 @@ export const LuaTiErrorHelper = {
     },
     PropertyXDoesNotExistOnTypeY(node: Container, left: string, right: Type) {
         return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.PropertyXDoesNotExistOnTypeY, `Property '${left}' does not exist on type '${typeToString(right)}'. ${this.location(node)}`)
+    },
+    AssignToConstant(node: IdentifierContainer) {
+        return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.AssignToConstant, `Cannot assign to '${node.text}' because it is a constant. ${this.location(node)}`)
+    },
+    OverwriteTypeOnImmutable(abstractExpressionContainer: ExpressionContainer) {
+        return new LuaTiError(LuaTiErrorLevel.Internal, LuaTiErrorCode.OverwriteImmutable, `Cannot set type on immutable ${this.location(abstractExpressionContainer)}`)
     }
 }

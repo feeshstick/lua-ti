@@ -8,19 +8,21 @@ import {createTable, GlobalTable} from "../../../table/symbol-table.js";
 import {CompilerOptions} from "../../../compiler-options/compiler-options.js";
 import {Comment} from "luaparse/lib/ast.js";
 
+export interface ProjectFile {
+    declarations: {
+        dir: string
+        files: string[]
+        compilerOptions: CompilerOptions
+    }[]
+    sourceFiles: {
+        dir: string
+        files: string[]
+        compilerOptions: CompilerOptions
+    }
+}
+
 export class SourceFileContainer extends BaseContainer<NodeKind.SourceFile> {
-    static build(config: {
-        declarations: {
-            dir: string
-            files: string[]
-            compilerOptions: CompilerOptions
-        }[]
-        sourceFiles: {
-            dir: string
-            files: string[]
-            compilerOptions: CompilerOptions
-        }
-    }) {
+    static build(config: ProjectFile) {
         return new SourceFileContainer({
             files: [...config.declarations.flatMap(declaration => {
                 return declaration.files.map(file => {

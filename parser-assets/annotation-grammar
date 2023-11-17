@@ -27,12 +27,22 @@ Annotation
     / ReturnAnnotation
     / FieldAnnotation
     / NameAnnotation
+    / ConstructorAnnotation
 
 NameAnnotation
     = "---@name"
     SPACE name:Ident
         { return {
             kind: AnnotationKind.Name,
+            name: name,
+            location: location()
+        } }
+
+ConstructorAnnotation
+    = "---@constructor"
+    SPACE name:Ident
+        { return {
+            kind: AnnotationKind.Constructor,
             name: name,
             location: location()
         } }
@@ -137,22 +147,23 @@ Type
             kind: TypeKind.Array,
             baseType: type
         } }
+    / FunctionType
     / BaseType
 
 BaseType
     = NonUnionType
     / UnionType
-    / FunctionType
 
 NonUnionType
     = PrimitiveType
     / NamedType
 
 FunctionType
-    = '('
+    = 'fun'
+    _ '('
     _ parameter:ParameterDeclarationList?
     _ ')'
-    _ '=>'
+    _ ':'
     _ ret:Type
         { return {
             kind: TypeKind.Function,

@@ -5,7 +5,7 @@ import {TypeKind} from "../type/type.js";
 import {
     Annotation,
     AnnotationKind,
-    ClassAnnotation,
+    ClassAnnotation, ConstructorAnnotation,
     DescriptionAnnotation,
     NameAnnotation,
     SignatureAnnotation
@@ -45,9 +45,13 @@ export class AnnotationParser {
         let signatureAnnotation: SignatureAnnotation | undefined = undefined
         let nameAnnotation: NameAnnotation | undefined = undefined
         let descriptionAnnotation: DescriptionAnnotation | undefined = undefined
+        let constructorAnnotation: ConstructorAnnotation | undefined = undefined
         for (let i = 0; i < annotations.length; i++) {
             let annotation = annotations[i];
             switch (annotation.kind) {
+                case AnnotationKind.Constructor:
+                    constructorAnnotation = annotation
+                    break;
                 case AnnotationKind.See:
                     break;
                 case AnnotationKind.Parameter:
@@ -59,6 +63,7 @@ export class AnnotationParser {
                                 description: descriptionAnnotation,
                                 name: nameAnnotation,
                                 kind: AnnotationKind.Signature,
+                                _constructor:constructorAnnotation,
                                 returns: {
                                     kind: AnnotationKind.Return,
                                     type: {
@@ -88,6 +93,7 @@ export class AnnotationParser {
                         } else {
                             signatureAnnotation = {
                                 description: descriptionAnnotation,
+                                _constructor:constructorAnnotation,
                                 name: nameAnnotation,
                                 kind: AnnotationKind.Signature,
                                 returns: annotation,
@@ -112,6 +118,7 @@ export class AnnotationParser {
         if (signatureAnnotation) {
             signatureAnnotation.name = nameAnnotation
             signatureAnnotation.description = descriptionAnnotation
+            signatureAnnotation._constructor = constructorAnnotation
         }
         if (classAnnotation) {
             classAnnotation.description = descriptionAnnotation

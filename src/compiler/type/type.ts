@@ -1,3 +1,5 @@
+import {ObjectSymbol, Symbol} from "../table/symbol-table.js";
+
 export enum TypeKind {
     Any,
     Null,
@@ -19,6 +21,8 @@ export enum TypeKind {
     ClassMember,
     Conditional,
     TypeRef,
+    Instance,
+    TypeOfSymbol,
 }
 
 export interface AbstractType<E extends TypeKind> {
@@ -83,6 +87,7 @@ export interface ArrayType extends AbstractType<TypeKind.Array> {
 
 export interface FunctionType extends AbstractType<TypeKind.Function> {
     parameter: ParameterType[]
+    constructs: Type | undefined
     returns: Type
 }
 
@@ -108,8 +113,11 @@ export interface ConditionalType extends AbstractType<TypeKind.Conditional> {
     right: Type | undefined
 }
 
-export interface TypeRef extends AbstractType<TypeKind.TypeRef> {
-    type: Type
+/**
+ * keeps context after flattening
+ */
+export interface TypeOfSymbol extends AbstractType<TypeKind.TypeOfSymbol>{
+    symbol: ObjectSymbol
 }
 
 export type Type =
@@ -130,5 +138,5 @@ export type Type =
     | ClassType
     | ParameterType
     | ConditionalType
-    | TypeRef
     | ClassMemberType
+    | TypeOfSymbol
