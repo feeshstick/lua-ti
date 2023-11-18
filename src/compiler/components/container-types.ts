@@ -39,7 +39,6 @@ import {TableValueContainer} from "./nodes/expression/table/table-entry/table-va
 import {CommentContainer} from "./nodes/trivia/comment-trivia-container.js";
 import {ChunkContainer} from "./nodes/meta/chunk-container.js";
 import {Program} from "./nodes/meta/program.js";
-import {CompilerOptions} from "../compiler-options/compiler-options.js";
 
 export enum NodeKind {
     Program = "Program",

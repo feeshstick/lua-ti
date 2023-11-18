@@ -57,7 +57,7 @@ import {Block} from "compiler/components/nodes/meta/block.js";
 import {ChunkContainer} from "compiler/components/nodes/meta/chunk-container.js";
 import {BinaryExpressionOperator, Container, NodeKind, UnaryExpressionOperator} from "../components/container-types.js";
 import {ContainerFlag} from "../components/base-container.js";
-import {LuaTiError, LuaTiErrorHelper} from "../error/lua-ti-error.js";
+import {LuaTiError} from "../error/lua-ti-error.js";
 import {ObjectMap} from "./symbol-table-2.js";
 import {LuaBasicType} from "../parser/annotation/annotation.js";
 import {TypeKind} from "../type/type.js";
