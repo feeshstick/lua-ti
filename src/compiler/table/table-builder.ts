@@ -91,9 +91,9 @@ const tableVisitor: TableVisitor = {
             visit(node.identifier, table)
             node.symbol = node.identifier.symbol
         } else {
-            node.functionBody.symbols.attribute = SymbolAttribute.FunctionBody
             node.symbol = new _Symbol(node)
         }
+        node.functionBody.symbols.attribute = SymbolAttribute.FunctionBody
         node.symbol.attribute = SymbolAttribute.Function
         visit(node.block, table)
     },
