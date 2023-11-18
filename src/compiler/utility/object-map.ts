@@ -1,0 +1,1 @@
+export type ObjectMap<E> = { [key: string | number]: E }

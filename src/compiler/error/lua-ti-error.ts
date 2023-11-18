@@ -3,7 +3,6 @@ import {Container, ExpressionContainer, NodeKind} from "../components/container-
 import {ChunkContainer} from "../components/nodes/meta/chunk-container.js";
 import {LuaTiErrorCode} from "./lua-ti-error-code.js";
 import {LuaTiErrorLevel} from "./lua-ti-error-level.js";
-import {BubbleBreak, MemberKind, Variable} from "../table/symbol-table-2.js";
 import {Type, TypeKind} from "../type/type.js";
 import {_Symbol} from "../table/symbol-table.js";
 
@@ -90,20 +89,20 @@ export const LuaTiErrorHelper = {
             return node.errLoc
         }
     },
-    duplicateDeclarationAsParameter(node: ExpressionContainer, symbol: Variable, symbolKind: MemberKind, bubbles: BubbleBreak[]) {
-        return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.DuplicateDeclarationAsParameter, `symbol=${symbol} kind="${symbolKind}" ${bubbles.join(',')} ${this.location(node)} ${this.location(node)}`)
+    duplicateDeclarationAsParameter(node: ExpressionContainer, symbol: _Symbol) {
+        return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.DuplicateDeclarationAsParameter, `symbol=${symbol} ${this.location(node)} ${this.location(node)}`)
     },
-    duplicateDeclarationAsForLoopVariable(node: ExpressionContainer, symbol: Variable, symbolKind: MemberKind, bubbles: BubbleBreak[]) {
-        return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.DuplicateDeclarationAsParameter, `symbol=${symbol} kind="${symbolKind}" ${bubbles.join(',')} ${this.location(node)} ${this.location(node)}`)
+    duplicateDeclarationAsForLoopVariable(node: ExpressionContainer, symbol: _Symbol) {
+        return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.DuplicateDeclarationAsParameter, `symbol=${symbol} ${this.location(node)} ${this.location(node)}`)
     },
-    duplicateDeclarationAsLocalVariable(node: ExpressionContainer, symbol: Variable, symbolKind: MemberKind, bubbles: BubbleBreak[]) {
-        return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.DuplicateDeclarationAsParameter, `symbol=${symbol} kind="${symbolKind}" ${bubbles.join(',')} ${this.location(node)} ${this.location(node)}`)
+    duplicateDeclarationAsLocalVariable(node: ExpressionContainer, symbol: _Symbol) {
+        return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.DuplicateDeclarationAsParameter, `symbol=${symbol} ${this.location(node)} ${this.location(node)}`)
     },
-    memberKindMismatch(node: ExpressionContainer, symbol: Variable, actualKind: MemberKind, expectedKind: MemberKind, bubbles: BubbleBreak[]) {
-        return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.DuplicateDeclarationAsParameter, `symbol=${symbol} actual=${actualKind} expected="${expectedKind}" ${bubbles.join(',')} ${this.location(node)}`)
+    memberKindMismatch(node: ExpressionContainer, symbol: _Symbol, actualKind: _Symbol) {
+        return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.DuplicateDeclarationAsParameter, `symbol=${symbol} actual=${actualKind} ${this.location(node)}`)
     },
     CallUndefinedSymbol(node: ExpressionContainer): LuaTiError {
-        return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.CallUndefinedSymbol, `${node.text} has no symbol, 'undefined' symbol cannot be called ${this.location(node)} ${this.location(node)}`)
+        return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.CallUndefinedSymbol, `${node.text} has no symbol, 'undefined' symbol cannot be called ${this.location(node)}`)
     },
     CannotAssignUndefinedSymbol(node: ExpressionContainer) {
         return new LuaTiError(LuaTiErrorLevel.Internal, LuaTiErrorCode.CannotAssignUndefinedSymbol, `Cannot assign undefined symbol ${node.id}`)

@@ -56,12 +56,11 @@ import {CommentContainer} from "compiler/components/nodes/trivia/comment-trivia-
 import {Block} from "compiler/components/nodes/meta/block.js";
 import {ChunkContainer} from "compiler/components/nodes/meta/chunk-container.js";
 import {BinaryExpressionOperator, Container, NodeKind, UnaryExpressionOperator} from "../components/container-types.js";
-import {ContainerFlag} from "../components/base-container.js";
 import {LuaTiError} from "../error/lua-ti-error.js";
-import {ObjectMap} from "./symbol-table-2.js";
 import {LuaBasicType} from "../parser/annotation/annotation.js";
 import {TypeKind} from "../type/type.js";
 import {_Symbol, SymbolAttribute, SymbolTable} from "./symbol-table.js";
+import {ObjectMap} from "../utility/object-map.js";
 
 export type TableVisitor = {
     [A in NodeKind]: (node: A extends Container['kind'] ? Extract<Container, {
@@ -86,7 +85,6 @@ const tableVisitor: TableVisitor = {
     [NodeKind.FunctionDeclaration]: function (node: FunctionExpressionContainer, table: SymbolTable): void {
         for (let i = 0; i < node.parameter.length; i++) {
             let parameterElement = node.parameter[i]
-            parameterElement.flag = ContainerFlag.Parameter
             visit(parameterElement, node.functionBody.symbols)
         }
         if (node.identifier) {
@@ -103,11 +101,7 @@ const tableVisitor: TableVisitor = {
         for (let argument of node.arguments) {
             visit(argument, table)
         }
-        try {
-            table.escapeReturn(node)
-        } catch (e) {
-            console.warn('escape global body')
-        }
+        table.escapeReturn(node)
     },
     [NodeKind.IfStatement]: function (node: IfStatementContainer, table: SymbolTable): void {
         for (let clause of node.clauses) {

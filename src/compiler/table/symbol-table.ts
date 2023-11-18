@@ -6,16 +6,13 @@ export enum SymbolAttribute {
     Undefined,
     FunctionBody,
     Function,
-    FunctionMember,
-    Member,
-    Table
 }
 
 export abstract class AbstractTable {
     private static tid_c: number = 0
     public readonly tid: number
     
-    private _attribute: SymbolAttribute = SymbolAttribute.Undefined
+    public attribute: SymbolAttribute = SymbolAttribute.Undefined
     
     protected readonly entries: Map<string, _Symbol> = new Map()
     
@@ -43,14 +40,6 @@ export abstract class AbstractTable {
             symbol.setParent(this as never)
             return symbol
         }
-    }
-    
-    set attribute(attribute: SymbolAttribute) {
-        this._attribute = attribute
-    }
-    
-    get attribute() {
-        return this._attribute
     }
 }
 

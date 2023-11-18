@@ -3,7 +3,6 @@ import {Container, createContainer, ExtendedNode, NodeKind, NodeRef} from "./con
 
 import {Block} from "./nodes/meta/block.js";
 import {ChunkContainer} from "./nodes/meta/chunk-container.js";
-import {SymbolTable2} from "../table/symbol-table-2.js";
 import {CompilerOptions} from "../compiler-options/compiler-options.js";
 import {LuaTiErrorHelper} from "../error/lua-ti-error.js";
 import {CommentContainer} from "./nodes/trivia/comment-trivia-container.js";
@@ -21,65 +20,6 @@ export abstract class AbstractContainer<T> {
     }
 }
 
-export enum ContainerFlag {
-    None = 0,
-    Declaration = 1,
-    Global = 1 << 1,
-    Local = 1 << 2,
-    Member = 1 << 3,
-    Function = 1 << 4,
-    Parameter = (1 << 5) | Local,
-    Call = 1 << 6,
-    Argument = 1 << 7,
-    Semi = 1 << 8,
-    Indexed = 1 << 9,
-    AssignNewValue = 1 << 10,
-    DeclareGlobal = Global | Declaration,
-    DeclareLocal = Local | Declaration,
-    DeclareOrResolveGlobal = Global | Declaration | Member,
-    DeclareOrResolveLocal = Local | Declaration | Member,
-}
-
-/**
- * 0000 0000 0000 0000
- *            CPF RLGD
- * D allow Declaration
- * G Global Scope Flag
- * L Local Scope Flag
- * R allow Resolve
- * F Function Flag
- * P Parameter Flag
- * C Call Flag
- * A Argument Flag
- */
-
-export function isDeclarationFlag(flag: ContainerFlag) {
-    return (flag & ContainerFlag.Declaration) === ContainerFlag.Declaration
-}
-
-export function isAssignNewValue(flag: ContainerFlag) {
-    return (flag & ContainerFlag.AssignNewValue) === ContainerFlag.AssignNewValue
-}
-
-export function isLocalFlag(flag: ContainerFlag) {
-    return (flag & ContainerFlag.Local) === ContainerFlag.Local
-}
-
-export function isParameterFlag(flag: ContainerFlag) {
-    return (flag & ContainerFlag.Parameter) === ContainerFlag.Parameter
-}
-
-export function isSemiFlag(flag: ContainerFlag) {
-    return (flag & ContainerFlag.Semi) === ContainerFlag.Semi
-}
-
-export function isMemberFlag(flag: ContainerFlag) {
-    return (flag & ContainerFlag.Member) === ContainerFlag.Member
-}
-
-export function isCallFlag(flag: ContainerFlag) {
-    return (flag & ContainerFlag.Call) === ContainerFlag.Call
-}
 
 export abstract class BaseContainer<NKind extends NodeKind> extends AbstractContainer<NKind> {
     public _stopPropagation: boolean = false
@@ -87,8 +27,6 @@ export abstract class BaseContainer<NKind extends NodeKind> extends AbstractCont
     public abstract readonly node: NodeRef<NKind extends ExtendedNode['type'] ? ExtendedNode['type'] : never>
     public abstract parent: Container | undefined
     public block?: Block
-    public flag: ContainerFlag = ContainerFlag.None
-    private __tableOverwrite: SymbolTable2 | undefined;
     public readonly comments: CommentContainer[] = []
     
     protected constructor(
@@ -152,14 +90,6 @@ export abstract class BaseContainer<NKind extends NodeKind> extends AbstractCont
         } else {
             return this.parent?.find(kind)
         }
-    }
-    
-    setTableOverwrite(table: SymbolTable2) {
-        this.__tableOverwrite = table
-    }
-    
-    clearTableOverwrite() {
-        this.__tableOverwrite = undefined
     }
     
     get symbols(): SymbolTable {

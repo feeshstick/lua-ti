@@ -1,5 +1,5 @@
-import {ObjectMap} from "../table/symbol-table-2.js";
 import {entries} from "../table/table-builder.js";
+import {ObjectMap} from "./object-map.js";
 
 export interface StringBuilder {
     println(...text: any[])
