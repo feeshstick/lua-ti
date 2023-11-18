@@ -1,290 +1,130 @@
-import {Container, ExpressionContainer} from "../components/container-types.js";
-import {CallExpressionContainer} from "../components/nodes/expression/call-expression/call-expression-container.js";
-import {FunctionExpressionContainer} from "../components/nodes/expression/function-expression-container.js";
+import {Container} from "../components/container-types.js";
 import {ReturnStatementContainer} from "../components/nodes/statement/return-statement-container.js";
-import {
-    StringCallExpressionContainer
-} from "../components/nodes/expression/call-expression/string-call-expression-container.js";
-import {
-    TableCallExpressionContainer
-} from "../components/nodes/expression/call-expression/table-call-expression-container.js";
-import {Type} from "../type/type.js";
-import {CompilerOptions} from "../compiler-options/compiler-options.js";
-import {entries} from "./table-builder.js";
 
-export type ObjectMap<E> = { [key: string | number]: E }
 
-export enum LSymbolTableKind {
-    GlobalEnvironment,
-    LocalEnvironment,
-    Variable
+export enum SymbolAttribute {
+    Undefined,
+    FunctionBody,
+    Function,
+    FunctionMember,
+    Member,
+    Table
 }
 
-interface AbstractSymbol<E extends LSymbolTableKind> {
-    kind: E
-}
-
-export enum BubbleBreak {
-    LocalBubble,
-    FunctionBubble,
-    GlobalBubble
-}
-
-export type MemberKind = 'member' | 'parameter' | 'semi'
-
-export interface AbstractSymbolTable<E extends LSymbolTableKind> extends AbstractSymbol<E> {
-    parent: SymbolTable | undefined
-    kind: E
-    name?: string
-    member: ObjectMap<Variable>
-    parameter?: ObjectMap<Variable>
-    semi?: ObjectMap<Variable>
-    bubbleBreak: BubbleBreak
+export abstract class AbstractTable {
+    private static tid_c: number = 0
+    public readonly tid: number
     
-    entries(): [string, Variable][]
+    private _attribute: SymbolAttribute = SymbolAttribute.Undefined
     
-    lookup(name: string, bubbles?: BubbleBreak): Variable | undefined
+    protected readonly entries: Map<string, _Symbol> = new Map()
     
-    lookupTrack(name: string): [Variable, MemberKind, BubbleBreak[]] | undefined
+    public abstract readonly parent?: _Symbol | SymbolTable
     
-    has(name: string, bubbles?: BubbleBreak): boolean
+    protected constructor() {
+        this.tid = AbstractTable.tid_c++
+    }
     
-    enter(name: string, set: Variable, location: MemberKind, compilerOptions: CompilerOptions): Variable
+    lookup(name: string): _Symbol | undefined {
+        if (this.entries.has(name)) {
+            return this.entries.get(name)!
+        } else if (this.parent) {
+            return this.parent.lookup(name)
+        } else {
+            return undefined
+        }
+    }
     
-    create(): LocalTable
+    enter(name: string, symbol: _Symbol): _Symbol {
+        if (this.entries.has(name)) {
+            throw new Error()
+        } else {
+            this.entries.set(name, symbol)
+            symbol.setParent(this as never)
+            return symbol
+        }
+    }
     
-    getSemi(): ObjectMap<Variable>
+    set attribute(attribute: SymbolAttribute) {
+        this._attribute = attribute
+    }
     
-    getParameter(): ObjectMap<Variable>
-    
-    global: SymbolTable
-}
-
-export interface LocalTable extends AbstractSymbolTable<LSymbolTableKind.LocalEnvironment> {
-    parent: SymbolTable
-}
-
-export interface GlobalTable extends AbstractSymbolTable<LSymbolTableKind.GlobalEnvironment> {
-    parent: undefined
-}
-
-export type SymbolTable = LocalTable | GlobalTable
-
-export interface CallArgument {
-    symbol: Variable
-    declaration: ExpressionContainer
-}
-
-export interface Call {
-    arguments: Array<CallArgument>
-    declaration: CallExpressionContainer | StringCallExpressionContainer | TableCallExpressionContainer
-    returns: Variable
-}
-
-export interface ParameterDeclaration {
-    symbol: Variable
-}
-
-export interface FunctionDeclaration {
-    functionBodyTable: SymbolTable
-    parameter: Array<ParameterDeclaration>
-    declaration?: FunctionExpressionContainer
-    returns: Array<{
-        declaration?: ReturnStatementContainer,
-        arguments: Variable[]
-    }>
-}
-
-export interface Variable extends AbstractSymbol<LSymbolTableKind.Variable> {
-    id: number
-    name?: string
-    kind: LSymbolTableKind.Variable
-    flag: SymbolFlag
-    declarations: Array<Container>
-    member?: ObjectMap<Variable>
-    indexedMember: {
-        key: Variable
-        value: Variable
-    }[]
-    calls?: Array<Call>
-    functionDeclaration?: FunctionDeclaration
-    offset?: number
-    type: Type | undefined
-}
-
-export function addCallToVariable(variable: Variable, call: Call) {
-    if (variable.calls) {
-        variable.calls.push(call)
-    } else {
-        variable.calls = [call]
+    get attribute() {
+        return this._attribute
     }
 }
 
-export function addMemberToVariable(name: string, variable: Variable, member: Variable): Variable {
-    if (variable.member) {
-        variable.member[name] = member
-    } else {
-        variable.member = {[name]: member}
-    }
-    return member
-}
-
-export enum SymbolFlag {
-    None = "None",
-    ArithmeticBinaryExpression = "ArithmeticBinaryExpression",
-    StringConcat = "StringConcat",
-    CompareBinaryExpression = "CompareBinaryExpression",
-    EqualityBinaryExpression = "EqualityBinaryExpression",
-    LogicalOr = "LogicalOr",
-    LogicalAnd = "LogicalAnd",
-    StringLiteral = "StringLiteral",
-    NilLiteral = "NilLiteral",
-    NumberLiteral = "NumberLiteral",
-    BoolLiteral = "BoolLiteral",
-    String = "String",
-    Nil = "Nil",
-    Number = "Number",
-    Bool = "Bool",
-    VarargLiteral = "VarargLiteral",
-    Function = "Function",
-    IndexPair = "IndexPair",
-    ValuePair = "ValuePair",
-    KeyPair = "KeyPair",
-    TypeOf = "TypeOf",
-    Indexed = "Indexed",
-    Table = "Table",
-}
-
-export type LiteralSymbolFlag =
-    | SymbolFlag.StringLiteral
-    | SymbolFlag.NilLiteral
-    | SymbolFlag.NumberLiteral
-    | SymbolFlag.BoolLiteral
-
-export function isLiteralSymbolFlag(flag: SymbolFlag): flag is LiteralSymbolFlag {
-    return flag === SymbolFlag.StringLiteral
-        || flag === SymbolFlag.NilLiteral
-        || flag === SymbolFlag.NumberLiteral
-        || flag === SymbolFlag.BoolLiteral
-}
-
-export type BinaryExpressionSymbolFlag =
-    | SymbolFlag.ArithmeticBinaryExpression
-    | SymbolFlag.StringConcat
-    | SymbolFlag.CompareBinaryExpression
-    | SymbolFlag.EqualityBinaryExpression
-
-export function isBinaryExpressionSymbolFlag(symbolFlag: SymbolFlag): symbolFlag is BinaryExpressionSymbolFlag {
-    return symbolFlag === SymbolFlag.ArithmeticBinaryExpression
-        || symbolFlag === SymbolFlag.StringConcat
-        || symbolFlag === SymbolFlag.CompareBinaryExpression
-        || symbolFlag === SymbolFlag.EqualityBinaryExpression
-}
-
-export function createTable(): GlobalTable
-export function createTable(parent: SymbolTable): LocalTable
-export function createTable(parent?: SymbolTable): SymbolTable {
-    if (parent) {
-        return _createTable<LocalTable>(LSymbolTableKind.LocalEnvironment, parent) as LocalTable
-    } else {
-        return _createTable<GlobalTable>(LSymbolTableKind.GlobalEnvironment, undefined) as GlobalTable
+export class _Symbol extends AbstractTable {
+    private _parent: _Symbol | SymbolTable | undefined
+    public readonly declarations: Container[]
+    public readonly accessor: [Container, _Symbol][] = []
+    public table: SymbolTable | undefined
+    
+    constructor(
+        ...declarations: Container[]
+    ) {
+        super()
+        this.declarations = declarations
     }
     
-    function _createTable<E extends SymbolTable>(kind: E['kind'], parent: E['parent']): AbstractSymbolTable<E['kind']> {
-        return {
-            kind: kind,
-            parent: parent,
-            member: {},
-            parameter: {},
-            semi: {},
-            bubbleBreak: BubbleBreak.LocalBubble,
-            create(): LocalTable {
-                return createTable(this as LocalTable)
-            },
-            has(name: string, bubbles: BubbleBreak): boolean {
-                return !!this.lookup(name, bubbles)
-            },
-            enter(name: string, table: Variable, location: 'member' | 'parameter' | 'semi', compilerOptions: CompilerOptions): Variable {
-                if (this.has(name, BubbleBreak.GlobalBubble)) {
-                    throw new Error()
-                }
-                switch (location) {
-                    case "member":
-                        this.member[name] = table
-                        break;
-                    case "parameter":
-                        this.getParameter()[name] = table
-                        break;
-                    case "semi":
-                        this.getSemi()[name] = table
-                        break;
-                }
-                return table
-            },
-            lookupTrack(name: string) {
-                if (this.parameter && this.parameter[name]) {
-                    return [this.parameter[name], 'parameter', [this.bubbleBreak]]
-                } else if (this.semi && this.semi[name]) {
-                    return [this.semi[name], 'semi', [this.bubbleBreak]]
-                } else if (this.member && this.member[name]) {
-                    return [this.member[name], 'member', [this.bubbleBreak]]
-                } else if (this.parent) {
-                    const variable = this.parent.lookupTrack(name)
-                    if (variable) {
-                        variable[2].unshift(this.bubbleBreak)
-                        return variable
-                    }
-                }
-                return undefined
-            },
-            lookup(name, bubbles = BubbleBreak.GlobalBubble) {
-                if (this.parameter && this.parameter[name]) {
-                    return this.parameter[name]
-                } else if (this.semi && this.semi[name]) {
-                    return this.semi[name]
-                } else if (this.member && this.member[name]) {
-                    return this.member[name]
-                } else if (bubbles && this.parent) {
-                    if (bubbles === BubbleBreak.FunctionBubble && this.bubbleBreak === BubbleBreak.FunctionBubble) {
-                        return undefined
-                    } else {
-                        return this.parent.lookup(name, bubbles)
-                    }
-                } else {
-                    return undefined
-                }
-            },
-            getSemi(): ObjectMap<Variable> {
-                if (!this.semi) {
-                    this.semi = {}
-                }
-                return this.semi
-            },
-            getParameter(): ObjectMap<Variable> {
-                if (!this.parameter) {
-                    this.parameter = {}
-                }
-                return this.parameter
-            },
-            entries(): [string, Variable][] {
-                return [
-                    ...entries(this.parameter || {}),
-                    ...entries(this.semi || {}),
-                    ...entries(this.member)
-                ] as [string, Variable][]
-            },
-            get global(): GlobalTable {
-                if (this.kind === LSymbolTableKind.GlobalEnvironment) {
-                    return this as GlobalTable
-                } else {
-                    return this.parent!.global as GlobalTable
-                }
-            }
+    get parent(): _Symbol | SymbolTable | undefined {
+        return this._parent
+    }
+    
+    setParent(parent: _Symbol | SymbolTable) {
+        this._parent = parent
+    }
+    
+    access(container: Container): _Symbol {
+        const symbol = new _Symbol()
+        this.accessor.push([container, symbol])
+        return symbol
+    }
+    
+    setEntries(entries: Map<string, _Symbol>) {
+        for (let [key, value] of entries) {
+            this.entries.set(key, value)
         }
     }
 }
 
-export function hasOwnProperty<E>(element: E, key: keyof E | string): key is keyof E {
-    // @ts-ignore
-    return typeof element[key] !== 'undefined'
+export class SymbolTable extends AbstractTable {
+    
+    private readonly _escapeReturnList: ReturnStatementContainer[] = []
+    private readonly _escapeExitList: ReturnStatementContainer[] = []
+    
+    constructor(
+        public readonly parent?: SymbolTable
+    ) {
+        super()
+    }
+    
+    create(): SymbolTable {
+        return new SymbolTable(this)
+    }
+    
+    get global(): SymbolTable {
+        if (this.parent) {
+            return this.parent
+        } else {
+            return this
+        }
+    }
+    
+    escapeReturn(container: ReturnStatementContainer) {
+        if (this.attribute === SymbolAttribute.FunctionBody) {
+            this._escapeReturnList.push(container)
+        } else if (this.parent) {
+            this.parent.escapeReturn(container)
+        } else {
+            this._escapeExitList.push(container)
+        }
+    }
+    
+    asSymbol(): _Symbol {
+        const symbol = new _Symbol()
+        symbol.setEntries(this.entries)
+        return symbol
+    }
+    
 }

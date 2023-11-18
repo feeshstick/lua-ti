@@ -1,141 +1,61 @@
-import fs from "fs";
-import luaparse, {Node} from "luaparse";
-import {Container, FileReference, NodeKind, SourceFileNode} from "../../container-types.js";
+import {Container, NodeKind, ProgramNode} from "../../container-types.js";
+import {ChunkFlag} from "./chunk-flag.js";
 import {BaseContainer} from "../../base-container.js";
 import {ChunkContainer} from "./chunk-container.js";
 import {Scope} from "../../scope.js";
-import {createTable, GlobalTable} from "../../../table/symbol-table.js";
-import {CompilerOptions} from "../../../compiler-options/compiler-options.js";
-import {Comment} from "luaparse/lib/ast.js";
+import {ProgramConfiguration} from "../../../../program-configuration.js";
+import {parse} from "../../../parser/lua/lua-parser.js";
+import {SymbolTable} from "../../../table/symbol-table.js";
 
-export class Program extends BaseContainer<NodeKind.SourceFile> {
-    static build(config: {
-        declarations: {
-            dir: string
-            files: string[]
-            compilerOptions: CompilerOptions
-        }[]
-        sourceFiles: {
-            dir: string
-            files: string[]
-            compilerOptions: CompilerOptions
-        }
-    }) {
-        return new Program({
-            files: [...config.declarations.flatMap(declaration => {
-                return declaration.files.map(file => {
-                    return {
-                        path: declaration.dir + '/' + file,
-                        name: file.slice(0, -4),
-                        source: fs.readFileSync(declaration.dir + '/' + file).toString('utf-8'),
-                        compilerOptions: declaration.compilerOptions
-                    } as FileReference
-                })
-            }), ...config.sourceFiles.files.map(file => {
-                return {
-                    path: config.sourceFiles.dir + '/' + file,
-                    name: file.slice(0, -4),
-                    source: fs.readFileSync(config.sourceFiles.dir + '/' + file).toString('utf-8'),
-                    compilerOptions: config.sourceFiles.compilerOptions
-                } as FileReference
-            })],
-            range: [0, 0],
-            type: 'SourceFile',
-        })
-    }
+export class Program extends BaseContainer<NodeKind.Program> {
     
-    static from(root: string, ...files: string[]) {
-        return new Program({
-            files: [...files.map(file => {
-                return {
-                    path: root + '/' + file,
-                    name: file.slice(0, -4),
-                    source: fs.readFileSync(root + '/' + file).toString('utf-8'),
-                    compilerOptions: {
-                        fileFlag: 'none',
-                        strict: true
-                    }
-                } as FileReference
-            })],
-            range: [0, 0],
-            type: 'SourceFile',
-        })
+    static build(config: ProgramConfiguration): Program {
+        return new Program(config)
     }
     
     parent: Container | undefined;
-    public readonly kind = NodeKind.SourceFile
-    public readonly chunks: ChunkContainer[] = []
-    public globalTable: GlobalTable = createTable()
+    public readonly kind = NodeKind.Program
+    public readonly constants: ChunkContainer[] = []
+    public readonly declarations: ChunkContainer[] = []
+    public readonly sources: ChunkContainer[] = []
+    public readonly node: ProgramNode
+    private readonly _table: SymbolTable = new SymbolTable()
     
     constructor(
-        public readonly node: SourceFileNode
+        public readonly config: ProgramConfiguration
     ) {
         super(new Scope())
-        for (let sourceFile of node.files) {
-            let commentStack: Comment[][] = []
-            let prevType: Node['type'] | undefined
-            let indent = 0
-            const getCommentMatch = (line: number) => {
-                for (let commentStackElement of commentStack) {
-                    const commentEnd = commentStackElement[commentStackElement.length - 1].loc?.start.line
-                    if (commentEnd == line - 1) {
-                        return commentStackElement
-                    }
-                }
-                return undefined
+        this.node = {
+            type: 'Program',
+            range: [0, 0]
+        }
+        for (let key of (Object.keys(this.config.program) as (keyof ProgramConfiguration['program'])[])) {
+            for (let chunkConfig of this.config.program[key].files) {
+                const path = this.config.program[key].path + '/' + chunkConfig.file
+                const chunk = parse(
+                    path,
+                    this,
+                    chunkConfig.compilerOptions || this.config.program[key].compilerOptions || config.compilerOptions,
+                    ChunkFlag.Source
+                )
+                this[key].push(chunk)
             }
-            const ast = luaparse.parse(sourceFile.source, {
-                locations: true,
-                ranges: true,
-                luaVersion: "5.3",
-                scope: true,
-                comments: true,
-                onCreateScope: () => {
-                    indent += 1
-                },
-                onDestroyScope: () => {
-                    indent -= 1
-                },
-                onCreateNode: node => {
-                    if (node.type === 'Comment') {
-                        const match = getCommentMatch(node.loc!.start.line)
-                        if (match) {
-                            match.push(node)
-                        } else {
-                            commentStack.push([node])
-                        }
-                    }
-                    prevType = node.type
-                    if (node.type === 'FunctionDeclaration') {
-                        const line = node.loc!.start.line
-                        node['comments'] = getCommentMatch(line)
-                    } else if (node.type === 'AssignmentStatement') {
-                        const line = node.loc!.start.line
-                        node['comments'] = getCommentMatch(line)
-                    }
-                }
-            })
-            const chunk = new ChunkContainer(sourceFile, ast, this, this.scope)
-            this.chunks.push(chunk)
-            // iterate over every node and init them (wouldn't be necessary with custom parser)
-            chunk.forEachDeep(initContainer)
-            
-            function initContainer(node: Container) {
-                node.onInit()
-                return true
-            }
-            
         }
     }
     
-    getGlobalTable() {
-        return this.globalTable
+    get chunks(): ChunkContainer[] {
+        return [
+            ...this.constants,
+            ...this.declarations,
+            ...this.sources
+        ]
+    }
+    
+    override get symbols(): SymbolTable {
+        return this._table
     }
     
     forEachChild(node: (node: ChunkContainer) => void) {
-        for (let chunk of this.chunks) {
-            node(chunk)
-        }
     }
     
 }

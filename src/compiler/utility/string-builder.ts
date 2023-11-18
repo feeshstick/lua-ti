@@ -1,4 +1,4 @@
-import {ObjectMap} from "../table/symbol-table.js";
+import {ObjectMap} from "../table/symbol-table-2.js";
 import {entries} from "../table/table-builder.js";
 
 export interface StringBuilder {

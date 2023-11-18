@@ -1,4 +1,4 @@
-import {BooleanType, NumberType, StringType, Type, TypeKind, UnionType} from "../type/type.js";
+import {BooleanType, NumberType, StringType, Type, TypeKind, UnionType} from "../../type/type.js";
 
 export enum AnnotationKind {
     Parameter,

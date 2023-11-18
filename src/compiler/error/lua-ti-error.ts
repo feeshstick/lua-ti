@@ -3,8 +3,9 @@ import {Container, ExpressionContainer, NodeKind} from "../components/container-
 import {ChunkContainer} from "../components/nodes/meta/chunk-container.js";
 import {LuaTiErrorCode} from "./lua-ti-error-code.js";
 import {LuaTiErrorLevel} from "./lua-ti-error-level.js";
-import {BubbleBreak, MemberKind, Variable} from "../table/symbol-table.js";
+import {BubbleBreak, MemberKind, Variable} from "../table/symbol-table-2.js";
 import {Type, TypeKind} from "../type/type.js";
+import {_Symbol} from "../table/symbol-table.js";
 
 export class LuaTiError extends Error {
     constructor(
@@ -67,11 +68,11 @@ export function typeToString(right: Type | undefined) {
 }
 
 export const LuaTiErrorHelper = {
-    overwriteSymbol(node: Container, left: Variable, right: Variable, message?: string): LuaTiError {
+    overwriteSymbol(node: Container, left: _Symbol, right: _Symbol, message?: string): LuaTiError {
         return new LuaTiError(
             LuaTiErrorLevel.Internal,
             LuaTiErrorCode.OverwriteSymbol,
-            `symbol-overwrite left=${left.id} right=${right.id} node=${node.id};${NodeKind[node.kind]} ${this.location(node)}`
+            `symbol-overwrite left=${left.tid} right=${right.tid} node=${node.id};${NodeKind[node.kind]} ${this.location(node)}`
         )
     },
     noSymbol(node: ExpressionContainer, message?: string): LuaTiError {
@@ -82,7 +83,7 @@ export const LuaTiErrorHelper = {
         )
     },
     location(node: Container) {
-        const path = node.find<ChunkContainer>(NodeKind.Chunk)?.sourceFile.path
+        const path = node.find<ChunkContainer>(NodeKind.Chunk)?.context.path
         if (path) {
             return 'file:///' + fs.realpathSync(path).replaceAll(/\\/gm, '/') + ':' + node.errLoc
         } else {

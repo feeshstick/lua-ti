@@ -1,7 +1,7 @@
-import {CommentContainer} from "../components/nodes/trivia/comment-trivia-container.js";
+import {CommentContainer} from "../../components/nodes/trivia/comment-trivia-container.js";
 import pegjs, {Parser} from "pegjs";
 import fs from "fs";
-import {TypeKind} from "../type/type.js";
+import {TypeKind} from "../../type/type.js";
 import {
     Annotation,
     AnnotationKind,

@@ -1,5 +1,5 @@
 import {Base, Node, Statement} from "luaparse";
-import {BlockContainer} from "./nodes/meta/block-container.js";
+import {Block} from "./nodes/meta/block.js";
 import {IdentifierContainer} from "./nodes/expression/literal/identifier-container.js";
 import {StringLiteralContainer} from "./nodes/expression/literal/string-literal-container.js";
 import {NumericLiteralContainer} from "./nodes/expression/literal/numeric-literal-container.js";
@@ -42,7 +42,7 @@ import {Program} from "./nodes/meta/program.js";
 import {CompilerOptions} from "../compiler-options/compiler-options.js";
 
 export enum NodeKind {
-    SourceFile = "SourceFile",
+    Program = "Program",
     Chunk = "Chunk",
     Block = "Block",
     IfStatement = "IfStatement",
@@ -83,39 +83,28 @@ export enum NodeKind {
     Comment = "Comment",
 }
 
-export interface FileReference {
-    path: string
-    name: string
-    source: string
-    compilerOptions: CompilerOptions
-}
-
-export interface Block extends Base<'Block'> {
+export interface BlockNode extends Base<'Block'> {
     type: 'Block'
     statements: Statement[]
     range: [number, number]
 }
 
-export interface SourceFileNode extends Base<"SourceFile"> {
-    type: "SourceFile"
-    files: FileReference[]
+export interface ProgramNode extends Base<"Program"> {
+    type: "Program"
     range: [number, number]
 }
 
 export type ExtendedNode =
     | Node
-    | SourceFileNode
-    | Block
-
-export interface TypeDeclarationSourceFile extends FileReference {
-}
+    | ProgramNode
+    | BlockNode
 
 export type NodeRef<E> = E extends ExtendedNode['type'] ? Extract<ExtendedNode, {
     type: E
 }> : never
 
 export interface BlockStatement {
-    readonly block: BlockContainer
+    readonly block: Block
 }
 
 export type ParameterContainer = IdentifierContainer | VarargLiteralContainer
@@ -267,7 +256,7 @@ export type Container =
     | TableValueContainer
     | CommentContainer
     | Program
-    | BlockContainer
+    | Block
 
 export enum BinaryExpressionOperator {
     add = "+",

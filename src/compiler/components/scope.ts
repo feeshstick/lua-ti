@@ -1,6 +1,6 @@
 import {Statement} from "luaparse";
 
-import {BlockContainer} from "./nodes/meta/block-container.js";
+import {Block, ContainerFlag2} from "./nodes/meta/block.js";
 
 import {Container} from "./container-types.js";
 
@@ -10,18 +10,18 @@ export class Scope {
     constructor(
         public readonly location?: Container,
         public readonly parent?: Scope,
-        public readonly block?: BlockContainer,
+        public readonly block?: Block,
     ) {
     }
     
-    static createBody(container: Container, statements: Statement[], name?: string) {
+    static createBody(container: Container, statements: Statement[], flag: ContainerFlag2, name?: string) {
         const scope = container.scope.createScope(container, name)
-        return new BlockContainer({
+        return new Block({
             type: 'Block',
             statements: statements,
             loc: container.node.loc,
             range: container.range
-        }, container, scope)
+        }, container, flag, scope)
     }
     
     createScope(container: Container, name?: string): Scope {

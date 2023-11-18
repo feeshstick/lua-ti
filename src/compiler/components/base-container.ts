@@ -1,14 +1,14 @@
 import {Scope} from "./scope.js";
 import {Container, createContainer, ExtendedNode, NodeKind, NodeRef} from "./container-types.js";
 
-import {BlockContainer} from "./nodes/meta/block-container.js";
-import {Program} from "./nodes/meta/program.js";
+import {Block} from "./nodes/meta/block.js";
 import {ChunkContainer} from "./nodes/meta/chunk-container.js";
-import {SymbolTable} from "../table/symbol-table.js";
+import {SymbolTable2} from "../table/symbol-table-2.js";
 import {CompilerOptions} from "../compiler-options/compiler-options.js";
 import {LuaTiErrorHelper} from "../error/lua-ti-error.js";
 import {CommentContainer} from "./nodes/trivia/comment-trivia-container.js";
 import {Comment} from "luaparse/lib/ast.js";
+import {SymbolTable} from "../table/symbol-table.js";
 
 export abstract class AbstractContainer<T> {
     private static idCounter = 0
@@ -86,9 +86,9 @@ export abstract class BaseContainer<NKind extends NodeKind> extends AbstractCont
     public abstract readonly kind: NKind
     public abstract readonly node: NodeRef<NKind extends ExtendedNode['type'] ? ExtendedNode['type'] : never>
     public abstract parent: Container | undefined
-    public block?: BlockContainer
+    public block?: Block
     public flag: ContainerFlag = ContainerFlag.None
-    private __tableOverwrite: SymbolTable | undefined;
+    private __tableOverwrite: SymbolTable2 | undefined;
     public readonly comments: CommentContainer[] = []
     
     protected constructor(
@@ -111,11 +111,21 @@ export abstract class BaseContainer<NKind extends NodeKind> extends AbstractCont
     
     get compilerOptions(): CompilerOptions {
         if (this.kind === NodeKind.Chunk) {
-            return (this as unknown as ChunkContainer).sourceFile.compilerOptions
-        } else if (this.kind === NodeKind.SourceFile || !this.parent) {
+            return (this as unknown as ChunkContainer).context.compilerOptions
+        } else if (this.kind === NodeKind.Program || !this.parent) {
             throw LuaTiErrorHelper.CannotAccessCompilerOptionsOfRootFile()
         } else {
             return this.parent.compilerOptions
+        }
+    }
+    
+    get chunk(): ChunkContainer {
+        if (this.kind === NodeKind.Chunk) {
+            return this as unknown as ChunkContainer
+        } else if (this.parent) {
+            return this.parent.chunk
+        } else {
+            throw new Error()
         }
     }
     
@@ -144,7 +154,7 @@ export abstract class BaseContainer<NKind extends NodeKind> extends AbstractCont
         }
     }
     
-    setTableOverwrite(table: SymbolTable) {
+    setTableOverwrite(table: SymbolTable2) {
         this.__tableOverwrite = table
     }
     
@@ -152,21 +162,11 @@ export abstract class BaseContainer<NKind extends NodeKind> extends AbstractCont
         this.__tableOverwrite = undefined
     }
     
-    get table(): SymbolTable {
-        if (this.__tableOverwrite) {
-            return this.__tableOverwrite
+    get symbols(): SymbolTable {
+        if (this.parent) {
+            return this.parent.symbols
         } else {
-            if (this.kind === NodeKind.SourceFile) {
-                return (this as unknown as Program).getGlobalTable()
-            } else if (this.kind === NodeKind.Block) {
-                return (this as unknown as BlockContainer).getLocalTable()
-            } else {
-                if (this.parent) {
-                    return this.parent.table
-                } else {
-                    throw new Error()
-                }
-            }
+            throw new Error()
         }
     }
     
@@ -314,7 +314,7 @@ export function forEachChild<E>(container: Container, consumer: (node: Container
             return visit(container.value)
         case NodeKind.Comment:
             break;
-        case NodeKind.SourceFile:
+        case NodeKind.Program:
             return visit(container.chunks)
     }
     return undefined
@@ -437,7 +437,7 @@ export function forEachChildExtended<E>(container: Container, consumer: (node: C
             return visit(container.value, 'value')
         case NodeKind.Comment:
             break;
-        case NodeKind.SourceFile:
+        case NodeKind.Program:
             return visit(container.chunks, 'chunks')
     }
     return undefined

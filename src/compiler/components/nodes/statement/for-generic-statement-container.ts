@@ -3,11 +3,11 @@ import {IdentifierContainer} from "../expression/literal/identifier-container.js
 import {BaseContainer} from "../../base-container.js";
 import {Scope} from "../../scope.js";
 import {BlockStatement, Container, createContainer, ExpressionContainer, NodeKind} from "../../container-types.js";
-import {BlockContainer} from "../meta/block-container.js";
+import {Block, ContainerFlag2} from "../meta/block.js";
 
 export class ForGenericStatementContainer extends BaseContainer<NodeKind.ForGenericStatement> implements BlockStatement {
     
-    public override readonly block: BlockContainer
+    public override readonly block: Block
     public readonly variables: IdentifierContainer[]
     public readonly iterators: ExpressionContainer[]
     public readonly kind = NodeKind.ForGenericStatement;
@@ -17,12 +17,12 @@ export class ForGenericStatementContainer extends BaseContainer<NodeKind.ForGene
         public readonly parent: Container,
         scope: Scope) {
         super(scope);
-        this.block = Scope.createBody(this, node.body)
+        this.block = Scope.createBody(this, node.body, ContainerFlag2.ForScope)
         this.variables = node.variables.map(x => createContainer(x, this, this.scope)) as IdentifierContainer[]
         this.iterators = node.iterators.map(x => createContainer(x, this, this.scope)) as ExpressionContainer[]
     }
     
-    forEachChild(node: (node: ExpressionContainer | BlockContainer) => void) {
+    forEachChild(node: (node: ExpressionContainer | Block) => void) {
         for (let variable of this.variables) {
             node(variable)
         }

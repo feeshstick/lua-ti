@@ -1,8 +1,8 @@
 import {ExpressionContainer, NodeKind} from "../../container-types.js";
 import {BaseContainer} from "../../base-container.js";
-import {Variable} from "../../../table/symbol-table.js";
 import {LuaTiErrorHelper} from "../../../error/lua-ti-error.js";
 import {Type} from "../../../type/type.js";
+import {_Symbol} from "../../../table/symbol-table.js";
 
 export type ExpressionContainerKind =
     | NodeKind.Identifier
@@ -26,12 +26,12 @@ export type ExpressionContainerKind =
     | NodeKind.TableKeyString
 
 export abstract class AbstractExpressionContainer<E extends ExpressionContainerKind> extends BaseContainer<E> {
-    private __symbol: Variable | undefined
+    private __symbol: _Symbol | undefined
     private __type: Type | undefined
     private __narrow
     __immutable: boolean = false
     
-    set symbol(symbol: Variable) {
+    set symbol(symbol: _Symbol) {
         if (symbol) {
             if (this.__symbol) {
                 throw LuaTiErrorHelper.overwriteSymbol(this as ExpressionContainer, this.__symbol, symbol)
@@ -44,7 +44,7 @@ export abstract class AbstractExpressionContainer<E extends ExpressionContainerK
         }
     }
     
-    get symbol(): Variable {
+    get symbol(): _Symbol {
         if (!this.__symbol) {
             throw LuaTiErrorHelper.noSymbol(this as ExpressionContainer)
         } else {
