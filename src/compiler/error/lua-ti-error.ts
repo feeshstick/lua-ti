@@ -5,14 +5,19 @@ import {LuaTiErrorCode} from "./lua-ti-error-code.js";
 import {LuaTiErrorLevel} from "./lua-ti-error-level.js";
 import {Type, TypeKind} from "../type/type.js";
 import {_Symbol} from "../table/symbol-table.js";
+import {ErrorContext, errorPrettyPrint} from "../../utility/error-pretty-print.js";
 
 export class LuaTiError extends Error {
     constructor(
         level: LuaTiErrorLevel,
         kind: LuaTiErrorCode,
-        message: string
+        message: string,
+        data?: ErrorContext
     ) {
         super(message);
+        if (data) {
+            console.log(errorPrettyPrint(data))
+        }
         Object.setPrototypeOf(Error, LuaTiError.prototype)
         console.log(this.cause)
     }
@@ -90,22 +95,22 @@ export const LuaTiErrorHelper = {
         }
     },
     duplicateDeclarationAsParameter(node: ExpressionContainer, symbol: _Symbol) {
-        return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.DuplicateDeclarationAsParameter, `symbol=${symbol} ${this.location(node)} ${this.location(node)}`)
+        return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.DuplicateDeclarationAsParameter, `symbol=${symbol} ${this.location(node)} ${this.location(node)}`, this.createErrorContext(node))
     },
     duplicateDeclarationAsForLoopVariable(node: ExpressionContainer, symbol: _Symbol) {
-        return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.DuplicateDeclarationAsParameter, `symbol=${symbol} ${this.location(node)} ${this.location(node)}`)
+        return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.DuplicateDeclarationAsParameter, `symbol=${symbol} ${this.location(node)} ${this.location(node)}`, this.createErrorContext(node))
     },
     duplicateDeclarationAsLocalVariable(node: ExpressionContainer, symbol: _Symbol) {
-        return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.DuplicateDeclarationAsParameter, `symbol=${symbol} ${this.location(node)} ${this.location(node)}`)
+        return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.DuplicateDeclarationAsParameter, `symbol=${symbol} ${this.location(node)} ${this.location(node)}`, this.createErrorContext(node))
     },
     memberKindMismatch(node: ExpressionContainer, symbol: _Symbol, actualKind: _Symbol) {
-        return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.DuplicateDeclarationAsParameter, `symbol=${symbol} actual=${actualKind} ${this.location(node)}`)
+        return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.DuplicateDeclarationAsParameter, `symbol=${symbol} actual=${actualKind} ${this.location(node)}`, this.createErrorContext(node))
     },
     CallUndefinedSymbol(node: ExpressionContainer): LuaTiError {
-        return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.CallUndefinedSymbol, `${node.text} has no symbol, 'undefined' symbol cannot be called ${this.location(node)}`)
+        return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.CallUndefinedSymbol, `${node.text} has no symbol, 'undefined' symbol cannot be called ${this.location(node)}`, this.createErrorContext(node))
     },
     CannotAssignUndefinedSymbol(node: ExpressionContainer) {
-        return new LuaTiError(LuaTiErrorLevel.Internal, LuaTiErrorCode.CannotAssignUndefinedSymbol, `Cannot assign undefined symbol ${node.id}`)
+        return new LuaTiError(LuaTiErrorLevel.Internal, LuaTiErrorCode.CannotAssignUndefinedSymbol, `Cannot assign undefined symbol ${node.text} ${this.location(node)}`, this.createErrorContext(node))
     },
     CannotAccessCompilerOptionsOfRootFile() {
         return new LuaTiError(LuaTiErrorLevel.Internal, LuaTiErrorCode.CannotAccessCompilerOptionsOfRootFile, `Cannot access compiler-options of root-file`)
@@ -114,6 +119,13 @@ export const LuaTiErrorHelper = {
         return new LuaTiError(LuaTiErrorLevel.Annotation, LuaTiErrorCode.AnnotationError, `${message || 'unspecified'}${location ? ' at ' + this.location(location) : ''}`)
     },
     PropertyXDoesNotExistOnTypeY(node: Container, left: string, right: Type) {
-        return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.PropertyXDoesNotExistOnTypeY, `Property '${left}' does not exist on type '${typeToString(right)}'. ${this.location(node)}`)
+        return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.PropertyXDoesNotExistOnTypeY, `Property '${left}' does not exist on type '${typeToString(right)}'. ${this.location(node)}`, this.createErrorContext(node))
+    },
+    createErrorContext(node: Container) {
+        return {
+            source: node.chunk.context.source,
+            location: node.node.loc!,
+            file: node.chunk.context.path
+        }
     }
 }

@@ -30,3 +30,6 @@ Auxiliary = {}
 function Auxiliary.Stringid(code, id)
     return (id & 0xfffff) | code << 20
 end
+
+Synchro={}
+math={}

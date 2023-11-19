@@ -7,7 +7,6 @@ import {ParameterAnnotation} from "../../../../parser/annotation/annotation.js";
 
 export class IdentifierContainer extends AbstractExpressionContainer<NodeKind.Identifier> {
     public readonly kind = NodeKind.Identifier;
-    public parameterAnnotation: ParameterAnnotation | undefined
     
     constructor(
         public readonly node: Identifier,

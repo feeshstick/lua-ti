@@ -7,7 +7,6 @@ import {ParameterAnnotation} from "../../../../parser/annotation/annotation.js";
 
 export class VarargLiteralContainer extends AbstractExpressionContainer<NodeKind.VarargLiteral> {
     public readonly kind = NodeKind.VarargLiteral;
-    public parameterAnnotation: ParameterAnnotation | undefined
     
     constructor(
         public readonly node: VarargLiteral,

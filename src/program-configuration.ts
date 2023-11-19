@@ -1,24 +1,19 @@
 import {CompilerOptions} from "./compiler/compiler-options/compiler-options.js";
+import {Injectable, Injector} from "./compiler/table/injector/Injector.js";
 
-interface InjectionContext {
-}
-
-type Injection = {
-    call: (context: InjectionContext) => (...args: any[]) => any
-} | {
-    [key: string]: Injection
+export interface InjectionContext {
 }
 
 export interface ProgramDeclarationFile extends ProgramFile {
-    inject?: Injection
 }
 
-interface ProgramConstantFile extends ProgramFile {
+export interface ProgramConstantFile extends ProgramFile {
 }
 
-interface ProgramFile {
+export interface ProgramFile {
     file: string
     compilerOptions?: CompilerOptions
+    inject?: Injectable
 }
 
 export interface ProgramSourceFile extends ProgramFile {

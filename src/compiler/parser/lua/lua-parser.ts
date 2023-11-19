@@ -2,18 +2,14 @@ import {Program} from "../../components/nodes/meta/program.js";
 
 import luaparse, {Node} from "luaparse"
 import {Comment} from "luaparse/lib/ast.js";
-import {ChunkContainer} from "../../components/nodes/meta/chunk-container.js";
-import {CompilerOptions} from "../../compiler-options/compiler-options.js";
+import {ChunkContainer, ChunkContext} from "../../components/nodes/meta/chunk-container.js";
 import fs from "fs";
-import {ChunkFlag} from "../../components/nodes/meta/chunk-flag.js";
 
 export function parse(
-    path: string,
     program: Program,
-    compilerOptions: CompilerOptions,
-    flag: ChunkFlag
+    chunkContext: Omit<ChunkContext, 'source'>
 ) {
-    const source = fs.readFileSync(path).toString('utf-8')
+    const source = fs.readFileSync(chunkContext.path + '/' + chunkContext.file).toString('utf-8')
     const commentGroups: Comment[][] = []
     let previousType: Node['type'] | undefined
     
@@ -56,9 +52,9 @@ export function parse(
     }
     
     return new ChunkContainer({
-        compilerOptions: compilerOptions,
-        path: path,
-        source: source,
-        flag: flag
+        ...chunkContext,
+        ...{
+            source: source
+        }
     }, abstractSyntaxTree, program, program.scope)
 }

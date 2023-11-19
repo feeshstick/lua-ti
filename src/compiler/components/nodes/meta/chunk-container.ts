@@ -6,12 +6,15 @@ import {Container, NodeKind} from "../../container-types.js";
 import {Block, ContainerFlag2} from "./block.js";
 import {CompilerOptions} from "../../../compiler-options/compiler-options.js";
 import {ChunkFlag} from "./chunk-flag.js";
+import {Program} from "./program.js";
+import {LuaTiDiagnostic} from "../../../error/lua-ti-diagnostic.js";
+import {ProgramDeclarationFile, ProgramFile} from "../../../../program-configuration.js";
 
-export interface ChunkContext {
-    path: string
+export interface ChunkContext extends ProgramFile {
     source: string
-    compilerOptions: CompilerOptions
+    path: string
     flag: ChunkFlag
+    compilerOptions: CompilerOptions
 }
 
 export class ChunkContainer extends BaseContainer<NodeKind.Chunk> {
@@ -22,7 +25,7 @@ export class ChunkContainer extends BaseContainer<NodeKind.Chunk> {
     constructor(
         public readonly context: ChunkContext,
         public readonly node: Chunk,
-        public readonly parent: Container | undefined,
+        public readonly parent: Program,
         scope: Scope
     ) {
         super(scope);

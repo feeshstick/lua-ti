@@ -8,6 +8,7 @@ import {LuaTiErrorHelper} from "../error/lua-ti-error.js";
 import {CommentContainer} from "./nodes/trivia/comment-trivia-container.js";
 import {Comment} from "luaparse/lib/ast.js";
 import {SymbolTable} from "../table/symbol-table.js";
+import {LuaTiDiagnostic} from "../error/lua-ti-diagnostic.js";
 
 export abstract class AbstractContainer<T> {
     private static idCounter = 0
@@ -19,7 +20,6 @@ export abstract class AbstractContainer<T> {
         this.id = BaseContainer.idCounter++
     }
 }
-
 
 export abstract class BaseContainer<NKind extends NodeKind> extends AbstractContainer<NKind> {
     public _stopPropagation: boolean = false
@@ -46,6 +46,14 @@ export abstract class BaseContainer<NKind extends NodeKind> extends AbstractCont
     }
     
     abstract forEachChild(node: (node: Container) => void)
+    
+    get diagnostic(): LuaTiDiagnostic {
+        if (this.parent) {
+            return this.parent.diagnostic
+        } else {
+            throw new Error()
+        }
+    }
     
     get compilerOptions(): CompilerOptions {
         if (this.kind === NodeKind.Chunk) {

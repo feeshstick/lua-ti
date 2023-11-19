@@ -61,6 +61,8 @@ import {LuaBasicType} from "../parser/annotation/annotation.js";
 import {TypeKind} from "../type/type.js";
 import {_Symbol, SymbolAttribute, SymbolTable} from "./symbol-table.js";
 import {ObjectMap} from "../utility/object-map.js";
+import {LuaTiDiagnostic} from "../error/lua-ti-diagnostic.js";
+import {ChunkFlag} from "../components/nodes/meta/chunk-flag.js";
 
 export type TableVisitor = {
     [A in NodeKind]: (node: A extends Container['kind'] ? Extract<Container, {
@@ -75,6 +77,9 @@ const tableVisitor: TableVisitor = {
         }
     },
     [NodeKind.Chunk]: function (node: ChunkContainer, table: SymbolTable): void {
+        if (node.context.inject) {
+            node.block.symbols.global.setInjectable(node.context.inject)
+        }
         visit(node.block, table)
     },
     [NodeKind.Block]: function (node: Block, table: SymbolTable): void {
@@ -133,17 +138,35 @@ const tableVisitor: TableVisitor = {
     [NodeKind.LocalStatement]: function (node: LocalStatementContainer, table: SymbolTable): void {
         for (let i = 0; i < node.variables.length; i++) {
             const variable = node.variables[i]
-            const symbol = new _Symbol(variable)
-            table.enter(variable.name, symbol)
-            variable.symbol = symbol
+            if (table.has(variable.name) && node.compilerOptions.noDuplicateLocalDeclaration) {
+                node.diagnostic.error(variable, LuaTiDiagnostic.message.noDuplicateLocalDeclaration, variable.name)
+            } else {
+                variable.symbol = table.enter(variable.name, new _Symbol(variable))
+            }
         }
         for (let i = 0; i < node.init.length; i++) {
             visit(node.init[i], table)
+            let isListSet = false
+            if (i === node.init.length - 1) {
+                const remaining = node.variables.length - node.init.length
+                if (remaining > 0) {
+                    if (node.init[i].symbol.isList()) {
+                        isListSet = true
+                        node.init[i].symbol.assign(node.variables.slice(-remaining))
+                    }
+                }
+            }
+            if (!isListSet) {
+                node.init[i].symbol.assign([node.variables[i]])
+            }
         }
     },
     [NodeKind.AssignmentStatement]: function (node: AssignmentStatementContainer, table: SymbolTable): void {
         for (let i = 0; i < node.variables.length; i++) {
             visit(node.variables[i], table)
+        }
+        if (node.init.length > 1) {
+            console.log(node.init.length)
         }
         for (let i = 0; i < node.init.length; i++) {
             visit(node.init[i], table)
@@ -304,19 +327,20 @@ const tableVisitor: TableVisitor = {
                 case NodeKind.AssignmentStatement:
                     return global()
                 case NodeKind.FunctionDeclaration:
-                    if (parent.isLocal) {
+                    if (node.attribute === SymbolAttribute.ParameterDeclaration) {
                         return local()
                     } else {
-                        return global()
+                        if (parent.isLocal) {
+                            return local()
+                        } else {
+                            return global()
+                        }
                     }
                 case NodeKind.MemberExpression:
                     return getSymbolByParentContext(parent.parent)
-                case NodeKind.UnaryExpression:
-                case NodeKind.CallExpression:
-                case NodeKind.BinaryExpression:
+                default: {
                     return table.lookup(node.name)!
-                default:
-                    throw new Error()
+                }
             }
         }
         
@@ -330,9 +354,27 @@ const tableVisitor: TableVisitor = {
     },
     [NodeKind.MemberExpression]: function (node: MemberExpressionContainer, table: SymbolTable): void {
         visit(node.base, table)
-        const symbol = node.base.symbol.lookup(node.identifier.name)
-            || node.base.symbol.enter(node.identifier.name, new _Symbol(node.identifier))
-        node.symbol = symbol.access(node)
+        
+        switch (node.chunk.context.flag) {
+            case ChunkFlag.Source:
+                if (!node.base.symbol.has(node.identifier.name)) {
+                    if (node.base.symbol.properties.allowCustomMember) {
+                        defaultAccess()
+                    } else {
+                        node.diagnostic.error(node, LuaTiDiagnostic.message.noCustomMember)
+                    }
+                }
+                break;
+            case ChunkFlag.Constant:
+            case ChunkFlag.Declaration:
+                defaultAccess()
+                break;
+        }
+        
+        function defaultAccess() {
+            node.symbol = (node.base.symbol.lookup(node.identifier.name)
+                || node.base.symbol.enter(node.identifier.name, new _Symbol(node.identifier))).access(node)
+        }
     },
     [NodeKind.IndexExpression]: function (node: IndexExpressionContainer, table: SymbolTable): void {
         visit(node.index, table)

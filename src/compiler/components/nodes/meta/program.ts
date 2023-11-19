@@ -6,6 +6,18 @@ import {Scope} from "../../scope.js";
 import {ProgramConfiguration} from "../../../../program-configuration.js";
 import {parse} from "../../../parser/lua/lua-parser.js";
 import {SymbolTable} from "../../../table/symbol-table.js";
+import {LuaTiDiagnostic} from "../../../error/lua-ti-diagnostic.js";
+
+function chunkFlagFromKey(key: "constants" | "declarations" | "sources") {
+    switch (key) {
+        case "constants":
+            return ChunkFlag.Constant
+        case "declarations":
+            return ChunkFlag.Declaration
+        case "sources":
+            return ChunkFlag.Source
+    }
+}
 
 export class Program extends BaseContainer<NodeKind.Program> {
     
@@ -20,6 +32,7 @@ export class Program extends BaseContainer<NodeKind.Program> {
     public readonly sources: ChunkContainer[] = []
     public readonly node: ProgramNode
     private readonly _table: SymbolTable = new SymbolTable()
+    private readonly _diagnostics: LuaTiDiagnostic = new LuaTiDiagnostic()
     
     constructor(
         public readonly config: ProgramConfiguration
@@ -31,12 +44,16 @@ export class Program extends BaseContainer<NodeKind.Program> {
         }
         for (let key of (Object.keys(this.config.program) as (keyof ProgramConfiguration['program'])[])) {
             for (let chunkConfig of this.config.program[key].files) {
-                const path = this.config.program[key].path + '/' + chunkConfig.file
+                const compilerOptions = chunkConfig.compilerOptions || this.config.program[key].compilerOptions || config.compilerOptions
                 const chunk = parse(
-                    path,
                     this,
-                    chunkConfig.compilerOptions || this.config.program[key].compilerOptions || config.compilerOptions,
-                    ChunkFlag.Source
+                    {
+                        file: chunkConfig.file,
+                        path: this.config.program[key].path,
+                        flag: chunkFlagFromKey(key),
+                        inject: chunkConfig.inject,
+                        compilerOptions: compilerOptions
+                    }
                 )
                 this[key].push(chunk)
             }
@@ -49,6 +66,10 @@ export class Program extends BaseContainer<NodeKind.Program> {
             ...this.declarations,
             ...this.sources
         ]
+    }
+    
+    override get diagnostic(): LuaTiDiagnostic {
+        return this._diagnostics
     }
     
     override get symbols(): SymbolTable {

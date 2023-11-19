@@ -8,14 +8,13 @@ import {Container, createContainer, NodeKind, ParameterContainer} from "../../co
 import {MemberExpressionContainer} from "./member-expression-container.js";
 
 import {Block, ContainerFlag2} from "../meta/block.js";
-import {SignatureAnnotation} from "../../../parser/annotation/annotation.js";
+import {SymbolAttribute} from "../../../table/symbol-table.js";
 
 export class FunctionExpressionContainer extends AbstractExpressionContainer<NodeKind.FunctionDeclaration> {
     public readonly parameter: Array<IdentifierContainer | VarargLiteralContainer>
     public override readonly block: Block
     public readonly identifier: IdentifierContainer | MemberExpressionContainer | null
     public readonly kind = NodeKind.FunctionDeclaration;
-    public signatureAnnotation: SignatureAnnotation | undefined
     
     constructor(
         public readonly node: FunctionDeclaration,
@@ -28,6 +27,7 @@ export class FunctionExpressionContainer extends AbstractExpressionContainer<Nod
         let hasVarargs: boolean = false
         for (let parameterNode of this.node.parameters) {
             const parameter = createContainer(parameterNode, this, blockScope) as ParameterContainer
+            parameter.attribute = SymbolAttribute.ParameterDeclaration
             parameterList.push(parameter)
             if (parameter.kind === NodeKind.VarargLiteral) {
                 if (hasVarargs) {
