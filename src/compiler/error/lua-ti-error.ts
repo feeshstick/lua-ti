@@ -1,10 +1,9 @@
 import fs from "fs";
 import {Container, ExpressionContainer, NodeKind} from "../components/container-types.js";
-import {ChunkContainer} from "../components/nodes/meta/chunk-container.js";
 import {LuaTiErrorCode} from "./lua-ti-error-code.js";
 import {LuaTiErrorLevel} from "./lua-ti-error-level.js";
 import {Type, TypeKind} from "../type/type.js";
-import {_Symbol} from "../table/symbol-table.js";
+import {Token} from "../table/symbol-table.js";
 import {ErrorContext, errorPrettyPrint} from "../../utility/error-pretty-print.js";
 
 export class LuaTiError extends Error {
@@ -72,7 +71,7 @@ export function typeToString(right: Type | undefined) {
 }
 
 export const LuaTiErrorHelper = {
-    overwriteSymbol(node: Container, left: _Symbol, right: _Symbol, message?: string): LuaTiError {
+    overwriteSymbol(node: Container, left: Token, right: Token, message?: string): LuaTiError {
         return new LuaTiError(
             LuaTiErrorLevel.Internal,
             LuaTiErrorCode.OverwriteSymbol,
@@ -87,23 +86,24 @@ export const LuaTiErrorHelper = {
         )
     },
     location(node: Container) {
-        const path = node.find<ChunkContainer>(NodeKind.Chunk)?.context.path
+        const path = node.chunk.context.path
+        const file = node.chunk.context.file
         if (path) {
-            return 'file:///' + fs.realpathSync(path).replaceAll(/\\/gm, '/') + ':' + node.errLoc
+            return 'file:///' + fs.realpathSync(path).replaceAll(/\\/gm, '/') + '/' + file + ':' + node.errLoc
         } else {
             return node.errLoc
         }
     },
-    duplicateDeclarationAsParameter(node: ExpressionContainer, symbol: _Symbol) {
+    duplicateDeclarationAsParameter(node: ExpressionContainer, symbol: Token) {
         return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.DuplicateDeclarationAsParameter, `symbol=${symbol} ${this.location(node)} ${this.location(node)}`, this.createErrorContext(node))
     },
-    duplicateDeclarationAsForLoopVariable(node: ExpressionContainer, symbol: _Symbol) {
+    duplicateDeclarationAsForLoopVariable(node: ExpressionContainer, symbol: Token) {
         return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.DuplicateDeclarationAsParameter, `symbol=${symbol} ${this.location(node)} ${this.location(node)}`, this.createErrorContext(node))
     },
-    duplicateDeclarationAsLocalVariable(node: ExpressionContainer, symbol: _Symbol) {
+    duplicateDeclarationAsLocalVariable(node: ExpressionContainer, symbol: Token) {
         return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.DuplicateDeclarationAsParameter, `symbol=${symbol} ${this.location(node)} ${this.location(node)}`, this.createErrorContext(node))
     },
-    memberKindMismatch(node: ExpressionContainer, symbol: _Symbol, actualKind: _Symbol) {
+    memberKindMismatch(node: ExpressionContainer, symbol: Token, actualKind: Token) {
         return new LuaTiError(LuaTiErrorLevel.Syntax, LuaTiErrorCode.DuplicateDeclarationAsParameter, `symbol=${symbol} actual=${actualKind} ${this.location(node)}`, this.createErrorContext(node))
     },
     CallUndefinedSymbol(node: ExpressionContainer): LuaTiError {

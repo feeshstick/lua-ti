@@ -1,13 +1,18 @@
 import {Container, ExpressionContainer} from "../components/container-types.js";
 import {ReturnStatementContainer} from "../components/nodes/statement/return-statement-container.js";
 import {Injectable} from "./injector/Injector.js";
+import {StringBuilder} from "../utility/string-builder.js";
+import {LuaTiErrorHelper} from "../error/lua-ti-error.js";
+import {VariableContainer} from "../components/nodes/expression/variable-container.js";
+import {AssignContainer} from "../components/nodes/statement/assign/assign-container.js";
 
 
 export enum SymbolAttribute {
     Undefined,
     FunctionBody,
     Function,
-    ParameterDeclaration
+    ParameterDeclaration,
+    UpValue,
 }
 
 export abstract class AbstractTable {
@@ -16,9 +21,9 @@ export abstract class AbstractTable {
     
     public attribute: SymbolAttribute = SymbolAttribute.Undefined
     
-    protected readonly entries: Map<string, _Symbol> = new Map()
+    protected readonly entries: Map<string, Token> = new Map()
     
-    public abstract readonly parent?: _Symbol | SymbolTable
+    public abstract readonly parent?: Token | SymbolTable
     protected injectable: Injectable | undefined
     
     protected constructor() {
@@ -29,7 +34,7 @@ export abstract class AbstractTable {
         this.injectable = injectable
     }
     
-    lookup(name: string): _Symbol | undefined {
+    lookup(name: string): Token | undefined {
         if (this.entries.has(name)) {
             return this.entries.get(name)!
         } else if (this.parent) {
@@ -43,7 +48,7 @@ export abstract class AbstractTable {
         return this.entries.has(name)
     }
     
-    enter(name: string, symbol: _Symbol): _Symbol {
+    enter(name: string, symbol: Token): Token {
         if (this.entries.has(name)) {
             throw new Error()
         } else {
@@ -59,33 +64,34 @@ export abstract class AbstractTable {
     }
 }
 
-export class _Symbol extends AbstractTable {
+export class Token extends AbstractTable {
     
-    private _parent: _Symbol | SymbolTable | undefined
+    private _parent: Token | SymbolTable | undefined
     public readonly declarations: Container[]
-    public readonly accessor: [Container, _Symbol][] = []
+    public readonly accessor: [Container, Token][] = []
     public table: SymbolTable | undefined
     public readonly properties: {
+        instance?: any;
+        immutable?: boolean
         
-        onBeforeParentInit?: (parent: SymbolTable | _Symbol) => void
-        onAfterParentInit?: (parent: SymbolTable | _Symbol) => void
+        onBeforeParentInit?: (parent: SymbolTable | Token) => void
+        onAfterParentInit?: (parent: SymbolTable | Token) => void
         
-        onAccess: (container: Container) => _Symbol
+        onAccess: (container: Container) => Token
         onAssign: (variables: ExpressionContainer[]) => void
         
         allowCustomMember?: boolean
         
-        symbolConstructor: (container: Container) => _Symbol
+        symbolConstructor: (container: Container) => Token
         
         isList?: boolean
         
     } = {
-        symbolConstructor: (container: Container) => new _Symbol(container),
+        symbolConstructor: (container: Container) => new Token(container),
         onAccess: (container) => {
             return this.properties.symbolConstructor(container)
         },
         onAssign: (variables) => {
-        
         }
     }
     
@@ -103,11 +109,11 @@ export class _Symbol extends AbstractTable {
         }
     }
     
-    get parent(): _Symbol | SymbolTable | undefined {
+    get parent(): Token | SymbolTable | undefined {
         return this._parent
     }
     
-    setParent(parent: _Symbol | SymbolTable) {
+    setParent(parent: Token | SymbolTable) {
         if (this.properties.onBeforeParentInit) {
             this.properties.onBeforeParentInit(parent)
         }
@@ -117,13 +123,13 @@ export class _Symbol extends AbstractTable {
         }
     }
     
-    access(container: Container): _Symbol {
+    access(container: Container): Token {
         const symbol = this.properties.onAccess(container)
         this.accessor.push([container, symbol])
         return symbol
     }
     
-    setEntries(entries: Map<string, _Symbol>) {
+    setEntries(entries: Map<string, Token>) {
         for (let [key, value] of entries) {
             this.entries.set(key, value)
         }
@@ -136,20 +142,67 @@ export class _Symbol extends AbstractTable {
     assign(variables: ExpressionContainer[]) {
         this.properties.onAssign(variables)
     }
+    
+    getText(out: StringBuilder) {
+        out.namedBlock('token tid=' + this.tid, () => {
+            out.namedBlock('properties:', () => {
+                out.println('└ attribute', SymbolAttribute[this.attribute])
+                if (typeof this.properties.instance !== 'undefined') out.println('└ instance',this.properties.instance)
+            })
+            if (this.entries.size > 0) {
+                out.namedBlock('member', () => {
+                    for (let [key, value] of this.entries) {
+                        out.namedBlock(key, () => {
+                            value.getText(out)
+                        })
+                    }
+                })
+            }
+            out.namedBlock('declarations', () => {
+                for (let i = 0; i < this.declarations.length; i++) {
+                    let declaration = this.declarations[i];
+                    out.println(i, `${LuaTiErrorHelper.location(declaration)}`)
+                }
+            })
+            if (this.accessor.length > 0) {
+                out.namedBlock('accessor', () => {
+                    for (let [key, value] of this.accessor) {
+                        out.namedBlock(key.text, () => {
+                            value.getText(out)
+                        })
+                    }
+                })
+            }
+        })
+    }
+    
+    setInstances(obj: any) {
+        if (typeof obj === 'object' && obj) {
+            for (let key of Object.keys(obj)) {
+                this.lookup(key)?.setInstances(obj[key])
+            }
+        }
+        this.properties.instance = obj
+    }
 }
 
 export class SymbolTable extends AbstractTable {
     private readonly _escapeReturnList: ReturnStatementContainer[] = []
     private readonly _escapeExitList: ReturnStatementContainer[] = []
+    private readonly _children: [Container, SymbolTable][] = []
+    private readonly _assignments: [AssignContainer, VariableContainer[], ExpressionContainer][] = []
     
     constructor(
-        public readonly parent?: SymbolTable
+        public readonly parent?: SymbolTable,
+        public readonly declaration?: Container
     ) {
         super()
     }
     
-    create(): SymbolTable {
-        return new SymbolTable(this)
+    create(container: Container): SymbolTable {
+        const child = new SymbolTable(this, container)
+        this._children.push([container, child])
+        return child
     }
     
     get global(): SymbolTable {
@@ -170,10 +223,73 @@ export class SymbolTable extends AbstractTable {
         }
     }
     
-    asSymbol(): _Symbol {
-        const symbol = new _Symbol()
+    asSymbol(): Token {
+        const symbol = new Token()
         symbol.setEntries(this.entries)
         return symbol
     }
     
+    getText(out: StringBuilder) {
+        const declarationPath = this.declaration ? LuaTiErrorHelper.location(this.declaration) : undefined
+        out.namedBlock('table tid=' + this.tid + (declarationPath ? ' ' + declarationPath : ''), () => {
+            out.namedBlock('properties', () => {
+                out.println('└ attribute', SymbolAttribute[this.attribute])
+            })
+            if (this.entries.size !== 0) {
+                out.namedBlock('entries', () => {
+                    for (let [key, value] of this.entries) {
+                        out.namedBlock(key, () => {
+                            value.getText(out)
+                        })
+                    }
+                })
+            }
+            if (this._children.length > 0) {
+                out.namedBlock('child-tables', () => {
+                    for (let i = 0; i < this._children.length; i++) {
+                        let [, child] = this._children[i];
+                        child.getText(out)
+                    }
+                })
+            }
+            if (this._assignments.length > 0) {
+                out.namedBlock('assignments', () => {
+                    for (let i = 0; i < this._assignments.length; i++) {
+                        let [assignContainer, variables, expression] = this._assignments[i];
+                        if (variables.length === 1) {
+                            out.println(i, variables[0].text + ' = ' + expression.text)
+                        } else {
+                            out.println(i, '[' + variables.map(x => x.text) + ']' + ' = ' + expression.text)
+                        }
+                    }
+                })
+            }
+        })
+    }
+    
+    clear() {
+        this.entries.clear()
+        this._children.splice(0, this._children.length)
+        this.attribute = SymbolAttribute.UpValue
+    }
+    
+    enterAssignment(container: AssignContainer, param: VariableContainer[], expression: ExpressionContainer) {
+        this._assignments.push([container, param, expression])
+    }
+    
+    getAssignmentsByContainer(container: AssignContainer): SymbolTable['_assignments'] {
+        return this._assignments.filter(x => x[0].id === container.id)
+    }
+    
+    getAssignments() {
+        return this._assignments
+    }
+    
+    setInstances(Env: Object) {
+        for (let key of Object.keys(Env)) {
+            if (this.has(key)) {
+                this.lookup(key)!.setInstances(Env[key])
+            }
+        }
+    }
 }

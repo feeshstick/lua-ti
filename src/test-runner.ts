@@ -3,7 +3,11 @@ import {Program} from "./compiler/components/nodes/meta/program.js";
 import {visitTableBuilder} from "./compiler/table/table-builder.js";
 import {NodeKind} from "./compiler/components/container-types.js";
 import {Injector} from "./compiler/table/injector/Injector.js";
-import {_Symbol} from "./compiler/table/symbol-table.js";
+import {Token} from "./compiler/table/symbol-table.js";
+import {visitTableInitializer} from "./compiler/table/table-initializer.js";
+import {createStringBuilder} from "./compiler/utility/string-builder.js";
+import {visitTableAssignInitializer} from "./compiler/table/table-assign-initializer.js";
+import {visitTableCallInitializer} from "./compiler/table/table-call-initializer.js";
 
 export function runTest(): number {
     for (let file of fs.readdirSync('test/cases')) {
@@ -61,7 +65,7 @@ export function runTest(): number {
                             inject: Injector.create({
                                 GetID: (symbol, system) => {
                                     system.access(NodeKind.CallExpression, call => {
-                                        const symbol = new _Symbol(call)
+                                        const symbol = new Token(call)
                                         symbol.properties.onAssign = container => {
                                             // local s,id = GetID()
                                             if (container[0]) {
@@ -71,7 +75,7 @@ export function runTest(): number {
                                                 container[0].symbol.properties.allowCustomMember = true
                                                 container[0].symbol.properties.onAccess = c => {
                                                     console.log('yeet')
-                                                    return new _Symbol()
+                                                    return new Token()
                                                 }
                                             }
                                             if (container[1]) {
@@ -99,10 +103,32 @@ export function runTest(): number {
             }
         })
         visitTableBuilder(program)
-        // try {
-        // } catch (e) {
-        //     program.diagnostic.prettyPrint()
-        // }
     }
     return 0
+}
+
+export function runSimpleTest() {
+    const program = Program.build({
+        compilerOptions: {},
+        program: {
+            constants: {
+                path: 'test/basic',
+                files: [{file: 'constants.lua'}]
+            },
+            declarations: {
+                path: 'test/basic',
+                files: [{file: 'declaration.d.lua'}]
+            },
+            sources: {
+                path: 'test/basic',
+                files: [{file: 'GetID.lua'}]
+            }
+        }
+    })
+    visitTableInitializer(program)
+    visitTableAssignInitializer(program)
+    visitTableCallInitializer(program)
+    const out = createStringBuilder()
+    program.symbols.getText(out)
+    console.log(out.text)
 }

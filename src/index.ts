@@ -1,6 +1,6 @@
 import {Argument, Command} from "commander"
 import {WebSocketServer} from "ws";
-import {runTest} from "./test-runner.js";
+import {runSimpleTest, runTest} from "./test-runner.js";
 
 export function cli() {
     const program = new Command()
@@ -11,6 +11,10 @@ export function cli() {
     program.command('test')
         .action(() => {
             runTest()
+        })
+    program.command('basic')
+        .action(() => {
+            runSimpleTest()
         })
     program.command('serve')
         .addArgument(new Argument('port', 'port'))

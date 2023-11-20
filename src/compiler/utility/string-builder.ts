@@ -115,7 +115,7 @@ export function createStringBuilder(): StringBuilder {
         },
         namedBlock(key: string, run: VoidFunction, style?: string) {
             this.println(key)
-            this.addIndent('  ')
+            this.addIndent((style ? style : '') + '  ')
             run()
             this.popIndent()
         },

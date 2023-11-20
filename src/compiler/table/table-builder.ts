@@ -59,7 +59,7 @@ import {BinaryExpressionOperator, Container, NodeKind, UnaryExpressionOperator} 
 import {LuaTiError} from "../error/lua-ti-error.js";
 import {LuaBasicType} from "../parser/annotation/annotation.js";
 import {TypeKind} from "../type/type.js";
-import {_Symbol, SymbolAttribute, SymbolTable} from "./symbol-table.js";
+import {Token, SymbolAttribute, SymbolTable} from "./symbol-table.js";
 import {ObjectMap} from "../utility/object-map.js";
 import {LuaTiDiagnostic} from "../error/lua-ti-diagnostic.js";
 import {ChunkFlag} from "../components/nodes/meta/chunk-flag.js";
@@ -96,7 +96,7 @@ const tableVisitor: TableVisitor = {
             visit(node.identifier, table)
             node.symbol = node.identifier.symbol
         } else {
-            node.symbol = new _Symbol(node)
+            node.symbol = new Token(node)
         }
         node.functionBody.symbols.attribute = SymbolAttribute.FunctionBody
         node.symbol.attribute = SymbolAttribute.Function
@@ -141,7 +141,7 @@ const tableVisitor: TableVisitor = {
             if (table.has(variable.name) && node.compilerOptions.noDuplicateLocalDeclaration) {
                 node.diagnostic.error(variable, LuaTiDiagnostic.message.noDuplicateLocalDeclaration, variable.name)
             } else {
-                variable.symbol = table.enter(variable.name, new _Symbol(variable))
+                variable.symbol = table.enter(variable.name, new Token(variable))
             }
         }
         for (let i = 0; i < node.init.length; i++) {
@@ -179,22 +179,22 @@ const tableVisitor: TableVisitor = {
         throw new Error("Not implemented.")
     },
     [NodeKind.StringLiteral]: function (node: StringLiteralContainer, table: SymbolTable): void {
-        node.symbol = new _Symbol(node)
+        node.symbol = new Token(node)
     },
     [NodeKind.NumericLiteral]: function (node: NumericLiteralContainer, table: SymbolTable): void {
-        node.symbol = new _Symbol(node)
+        node.symbol = new Token(node)
     },
     [NodeKind.BooleanLiteral]: function (node: BooleanLiteralContainer, table: SymbolTable): void {
-        node.symbol = new _Symbol(node)
+        node.symbol = new Token(node)
     },
     [NodeKind.NilLiteral]: function (node: NilLiteralContainer, table: SymbolTable): void {
-        node.symbol = new _Symbol(node)
+        node.symbol = new Token(node)
     },
     [NodeKind.VarargLiteral]: function (node: VarargLiteralContainer, table: SymbolTable): void {
-        node.symbol = new _Symbol(node)
+        node.symbol = new Token(node)
     },
     [NodeKind.BinaryExpression]: function (node: BinaryExpressionContainer, table: SymbolTable): void {
-        node.symbol = new _Symbol(node)
+        node.symbol = new Token(node)
         switch (node.operator) {
             case BinaryExpressionOperator.add:
                 node.type = LuaBasicType.Number
@@ -258,7 +258,7 @@ const tableVisitor: TableVisitor = {
         visit(node.right, table)
     },
     [NodeKind.LogicalExpression]: function (node: LogicalExpressionContainer, table: SymbolTable): void {
-        node.symbol = new _Symbol(node)
+        node.symbol = new Token(node)
         switch (node.operator) {
             case "or":
                 visit(node.left, table)
@@ -281,7 +281,7 @@ const tableVisitor: TableVisitor = {
         }
     },
     [NodeKind.UnaryExpression]: function (node: UnaryExpressionContainer, table: SymbolTable): void {
-        node.symbol = new _Symbol(node)
+        node.symbol = new Token(node)
         switch (node.operator) {
             case UnaryExpressionOperator.Not:
                 node.type = LuaBasicType.Boolean
@@ -322,7 +322,7 @@ const tableVisitor: TableVisitor = {
     [NodeKind.Identifier]: function (node: IdentifierContainer, table: SymbolTable): void {
         node.symbol = getSymbolByParentContext(node.parent)
         
-        function getSymbolByParentContext(parent: Container): _Symbol {
+        function getSymbolByParentContext(parent: Container): Token {
             switch (parent.kind) {
                 case NodeKind.AssignmentStatement:
                     return global()
@@ -345,11 +345,11 @@ const tableVisitor: TableVisitor = {
         }
         
         function local() {
-            return table.lookup(node.name) || table.enter(node.name, new _Symbol(node))
+            return table.lookup(node.name) || table.enter(node.name, new Token(node))
         }
         
         function global() {
-            return table.lookup(node.name) || table.global.enter(node.name, new _Symbol(node))
+            return table.lookup(node.name) || table.global.enter(node.name, new Token(node))
         }
     },
     [NodeKind.MemberExpression]: function (node: MemberExpressionContainer, table: SymbolTable): void {
@@ -373,7 +373,7 @@ const tableVisitor: TableVisitor = {
         
         function defaultAccess() {
             node.symbol = (node.base.symbol.lookup(node.identifier.name)
-                || node.base.symbol.enter(node.identifier.name, new _Symbol(node.identifier))).access(node)
+                || node.base.symbol.enter(node.identifier.name, new Token(node.identifier))).access(node)
         }
     },
     [NodeKind.IndexExpression]: function (node: IndexExpressionContainer, table: SymbolTable): void {
@@ -382,7 +382,7 @@ const tableVisitor: TableVisitor = {
         node.symbol = node.base.symbol.access(node)
     },
     [NodeKind.TableConstructorExpression]: function (node: TableConstructorExpressionContainer, table: SymbolTable): void {
-        node.setConstructorTable(table.create())
+        node.setConstructorTable(table.create(node))
         for (let i = 0; i < node.fields.length; i++) {
             let field = node.fields[i];
             if (field.kind === NodeKind.TableValue) {

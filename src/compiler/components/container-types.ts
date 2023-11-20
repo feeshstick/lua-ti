@@ -257,6 +257,43 @@ export type Container =
     | Program
     | Block
 
+export type ExpressionKind =
+    | NodeKind.Identifier
+    | NodeKind.StringLiteral
+    | NodeKind.NumericLiteral
+    | NodeKind.BooleanLiteral
+    | NodeKind.NilLiteral
+    | NodeKind.VarargLiteral
+    | NodeKind.TableConstructorExpression
+    | NodeKind.BinaryExpression
+    | NodeKind.LogicalExpression
+    | NodeKind.UnaryExpression
+    | NodeKind.MemberExpression
+    | NodeKind.IndexExpression
+    | NodeKind.CallExpression
+    | NodeKind.TableCallExpression
+    | NodeKind.StringCallExpression
+    | NodeKind.FunctionDeclaration
+
+export function isExpressionKind(kind: NodeKind): kind is ExpressionKind {
+    return kind === NodeKind.Identifier
+        || kind === NodeKind.StringLiteral
+        || kind === NodeKind.NumericLiteral
+        || kind === NodeKind.BooleanLiteral
+        || kind === NodeKind.NilLiteral
+        || kind === NodeKind.VarargLiteral
+        || kind === NodeKind.TableConstructorExpression
+        || kind === NodeKind.BinaryExpression
+        || kind === NodeKind.LogicalExpression
+        || kind === NodeKind.UnaryExpression
+        || kind === NodeKind.MemberExpression
+        || kind === NodeKind.IndexExpression
+        || kind === NodeKind.CallExpression
+        || kind === NodeKind.TableCallExpression
+        || kind === NodeKind.StringCallExpression
+        || kind === NodeKind.FunctionDeclaration
+}
+
 export enum BinaryExpressionOperator {
     add = "+",
     sub = "-",

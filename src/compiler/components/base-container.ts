@@ -1,5 +1,5 @@
 import {Scope} from "./scope.js";
-import {Container, createContainer, ExtendedNode, NodeKind, NodeRef} from "./container-types.js";
+import {Container, createContainer, ExtendedNode, isExpressionKind, NodeKind, NodeRef} from "./container-types.js";
 
 import {Block} from "./nodes/meta/block.js";
 import {ChunkContainer} from "./nodes/meta/chunk-container.js";
@@ -90,6 +90,14 @@ export abstract class BaseContainer<NKind extends NodeKind> extends AbstractCont
     
     getTextFromRange(range: [number, number]) {
         return this.parent!.getTextFromRange(range)
+    }
+    
+    searchUpperStatement(): Container | undefined {
+        if (isExpressionKind(this.kind)) {
+            return this.parent?.searchUpperStatement()
+        } else {
+            return this as unknown as Container
+        }
     }
     
     find<E extends Container>(kind: E['kind']): E | undefined {

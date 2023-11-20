@@ -1,4 +1,4 @@
-import {_Symbol} from "../symbol-table.js";
+import {Token} from "../symbol-table.js";
 import {Container, ExpressionContainer, NodeKind} from "../../components/container-types.js";
 import {entries} from "../table-builder.js";
 
@@ -51,24 +51,24 @@ export class Injector extends AbstractInject<InjectKind.Injector> {
 }
 
 interface InjectionReceiver {
-    onInit(symbol: _Symbol)
+    onInit(symbol: Token)
 }
 
 interface SymbolInitializer {
     access<A>(kind: A, consumer: (node: A extends Container['kind'] ? Extract<Container, {
         kind: A
-    }> : never) => (_Symbol | void)): void
+    }> : never) => (Token | void)): void
     
     assign(consumer: (variables: ExpressionContainer[]) => void): void
 }
 
-export type InjectionInitializer = (symbol: _Symbol, _constructor: SymbolInitializer) => void
+export type InjectionInitializer = (symbol: Token, _constructor: SymbolInitializer) => void
 
 export class Injection extends AbstractInject<InjectKind.Injection> {
     static create(init: InjectionInitializer) {
         return new Injection({
-            onInit(_symbol: _Symbol) {
-                const accessListener: Map<NodeKind, (container: Container) => (void | _Symbol)> = new Map()
+            onInit(_symbol: Token) {
+                const accessListener: Map<NodeKind, (container: Container) => (void | Token)> = new Map()
                 _symbol.properties.onAccess = container => {
                     const listener = accessListener.get(container.kind)
                     if (listener) {
@@ -106,7 +106,7 @@ export class Injection extends AbstractInject<InjectKind.Injection> {
         return true
     }
     
-    emitSetInjection(symbol: _Symbol) {
+    emitSetInjection(symbol: Token) {
         this.receiver.onInit(symbol)
     }
     

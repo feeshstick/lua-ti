@@ -25,7 +25,7 @@ export class Block extends BaseContainer<NodeKind.Block> {
         scope: Scope,
     ) {
         super(scope)
-        this._table = this.parent.symbols.create()
+        this._table = this.parent.symbols.create(this)
         this.statements = this.node.statements
             .filter(statement => {
                 if (parent.compilerOptions.parserOptions) {
