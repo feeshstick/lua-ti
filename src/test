@@ -1,0 +1,27 @@
+
+--炎の護封剣
+--Swords of Burning Light
+local s,id=GetID()
+function s.initial_effect(c)
+    Card.RegisterEffect({
+        type: CONSTANT.EFFECT_TYPE_ACTIVATE,
+        code: CONSTANT.EVENT_FREE_CHAIN
+    })
+    Card.RegisterEffect({
+        type: CONSTANT.EFFECT_TYPE_FIELD,
+        code: CONSTANT.EFFECT_CANNOT_ATTACK_ANNOUNCE,
+        range: CONSTANT.LOCATION_SZONE,
+        targetRange: [0,CONSTANT.LOCATION_MZONE],
+        condition: (e,tp,eg,ep,ev,re,r,rp) => {return Duel.GetFieldGroupCount(tp,LOCATION_MZONE,0)==0}
+    })
+    Card.RegisterEffect({
+        type: CONSTANT.EFFECT_TYPE_SINGLE,
+        code: CONSTANT.EFFECT_SELF_DESTROY,
+        property: CONSTANT.EFFECT_FLAG_SINGLE_RANGE,
+        range: CONSTANT.LOCATION_SZONE,
+        condition: (e,tp,eg,ep,ev,re,r,rp)=>{
+            return Duel.GetFieldGroupCount(tp,CONSTANT.LOCATION_MZONE,0) !== 0
+                || Duel.GetFieldGroupCount(tp,0,CONSTANT.LOCATION_HAND) >= 5
+        }
+    })
+end

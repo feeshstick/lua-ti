@@ -1,10 +1,10 @@
-import {Container, ExpressionContainer} from "../components/container-types.js";
+import {Container, ExpressionContainer, ParameterContainer} from "../components/container-types.js";
 import {ReturnStatementContainer} from "../components/nodes/statement/return-statement-container.js";
-import {Injectable} from "./injector/Injector.js";
 import {StringBuilder} from "../utility/string-builder.js";
 import {LuaTiErrorHelper} from "../error/lua-ti-error.js";
 import {VariableContainer} from "../components/nodes/expression/variable-container.js";
 import {AssignContainer} from "../components/nodes/statement/assign/assign-container.js";
+import chalk from "chalk";
 
 
 export enum SymbolAttribute {
@@ -24,14 +24,9 @@ export abstract class AbstractTable {
     protected readonly entries: Map<string, Token> = new Map()
     
     public abstract readonly parent?: Token | SymbolTable
-    protected injectable: Injectable | undefined
     
     protected constructor() {
         this.tid = AbstractTable.tid_c++
-    }
-    
-    setInjectable(injectable: Injectable) {
-        this.injectable = injectable
     }
     
     lookup(name: string): Token | undefined {
@@ -52,11 +47,6 @@ export abstract class AbstractTable {
         if (this.entries.has(name)) {
             throw new Error()
         } else {
-            if (this.injectable && this.injectable.isInjector()) {
-                if (this.injectable.entries.has(name)) {
-                    symbol.setInjectable(this.injectable.entries.get(name)!)
-                }
-            }
             this.entries.set(name, symbol)
             symbol.setParent(this as never)
             return symbol
@@ -64,36 +54,26 @@ export abstract class AbstractTable {
     }
 }
 
+interface FunctionTypeGuide {
+    type: 'function'
+    parameter: (...args: ParameterContainer[]) => void
+}
+
+export type TypeGuide =
+    | [string, TypeGuide]
+    | FunctionTypeGuide
+
 export class Token extends AbstractTable {
     
     private _parent: Token | SymbolTable | undefined
     public readonly declarations: Container[]
-    public readonly accessor: [Container, Token][] = []
     public table: SymbolTable | undefined
     public readonly properties: {
-        instance?: any;
+        typeGuide?: TypeGuide[]
         immutable?: boolean
-        
-        onBeforeParentInit?: (parent: SymbolTable | Token) => void
-        onAfterParentInit?: (parent: SymbolTable | Token) => void
-        
-        onAccess: (container: Container) => Token
-        onAssign: (variables: ExpressionContainer[]) => void
-        
-        allowCustomMember?: boolean
-        
-        symbolConstructor: (container: Container) => Token
-        
-        isList?: boolean
-        
-    } = {
-        symbolConstructor: (container: Container) => new Token(container),
-        onAccess: (container) => {
-            return this.properties.symbolConstructor(container)
-        },
-        onAssign: (variables) => {
-        }
-    }
+        instance?: any
+        type?: string
+    } = {}
     
     constructor(
         ...declarations: Container[]
@@ -102,11 +82,16 @@ export class Token extends AbstractTable {
         this.declarations = declarations
     }
     
-    override setInjectable(injection: Injectable) {
-        super.setInjectable(injection)
-        if (this.injectable && this.injectable.isInjection()) {
-            this.injectable.emitSetInjection(this)
+    override enter(name: string, symbol: Token): Token {
+        const token = super.enter(name, symbol)
+        if (this.properties.typeGuide) {
+            for (let entry of this.properties.typeGuide) {
+                if (entry instanceof Array && name === entry[0]) {
+                    token.properties.typeGuide = [entry[1]]
+                }
+            }
         }
+        return token
     }
     
     get parent(): Token | SymbolTable | undefined {
@@ -114,19 +99,7 @@ export class Token extends AbstractTable {
     }
     
     setParent(parent: Token | SymbolTable) {
-        if (this.properties.onBeforeParentInit) {
-            this.properties.onBeforeParentInit(parent)
-        }
         this._parent = parent
-        if (this.properties.onAfterParentInit) {
-            this.properties.onAfterParentInit(parent)
-        }
-    }
-    
-    access(container: Container): Token {
-        const symbol = this.properties.onAccess(container)
-        this.accessor.push([container, symbol])
-        return symbol
     }
     
     setEntries(entries: Map<string, Token>) {
@@ -135,41 +108,50 @@ export class Token extends AbstractTable {
         }
     }
     
-    isList(): boolean {
-        return !!this.properties.isList
-    }
-    
-    assign(variables: ExpressionContainer[]) {
-        this.properties.onAssign(variables)
-    }
-    
     getText(out: StringBuilder) {
         out.namedBlock('token tid=' + this.tid, () => {
             out.namedBlock('properties:', () => {
                 out.println('└ attribute', SymbolAttribute[this.attribute])
-                if (typeof this.properties.instance !== 'undefined') out.println('└ instance',this.properties.instance)
+                if (typeof this.properties.instance !== 'undefined') {
+                    const instance = this.properties.instance
+                    const instanceString = instance.toString()
+                    if (instanceString.includes('\n')) {
+                        out.println('└ instance')
+                        if (typeof this.properties.instance === 'function') {
+                            out.printBypassIndent(chalk.yellowBright(instanceString))
+                        } else {
+                            out.printBypassIndent(chalk.yellowBright(instanceString))
+                        }
+                    } else {
+                        out.println('└ instance', chalk.yellowBright(instanceString))
+                    }
+                    out.println(`└ ${chalk.italic('typeof')} instance`, typeof instance)
+                }
+                if (this.properties.type) out.println(`└ type`, this.properties.type)
+                if (this.properties.typeGuide) {
+                    out.println('└ type-guide', JSON.stringify(this.properties.typeGuide, (key, value) => {
+                        if (typeof value === 'function') {
+                            return value.toString().replace(/\s+/gm, ' ')
+                        } else {
+                            return value
+                        }
+                    }))
+                }
             })
             if (this.entries.size > 0) {
                 out.namedBlock('member', () => {
                     for (let [key, value] of this.entries) {
-                        out.namedBlock(key, () => {
+                        out.namedBlock(chalk.bold.cyanBright(key), () => {
                             value.getText(out)
                         })
                     }
                 })
             }
-            out.namedBlock('declarations', () => {
-                for (let i = 0; i < this.declarations.length; i++) {
-                    let declaration = this.declarations[i];
-                    out.println(i, `${LuaTiErrorHelper.location(declaration)}`)
-                }
-            })
-            if (this.accessor.length > 0) {
-                out.namedBlock('accessor', () => {
-                    for (let [key, value] of this.accessor) {
-                        out.namedBlock(key.text, () => {
-                            value.getText(out)
-                        })
+            if (this.declarations.length > 0) {
+                out.namedBlock('declarations', () => {
+                    for (let i = 0; i < this.declarations.length; i++) {
+                        let declaration = this.declarations[i];
+                        out.println(i, `${LuaTiErrorHelper.location(declaration)}`)
                     }
                 })
             }
@@ -238,7 +220,7 @@ export class SymbolTable extends AbstractTable {
             if (this.entries.size !== 0) {
                 out.namedBlock('entries', () => {
                     for (let [key, value] of this.entries) {
-                        out.namedBlock(key, () => {
+                        out.namedBlock(chalk.bold.cyanBright.underline(key), () => {
                             value.getText(out)
                         })
                     }
@@ -281,8 +263,22 @@ export class SymbolTable extends AbstractTable {
         return this._assignments.filter(x => x[0].id === container.id)
     }
     
+    getAssignmentsByContainerDeep(container: AssignContainer): SymbolTable['_assignments'] {
+        return [
+            ...this._assignments.filter(x => x[0].id === container.id),
+            ...this._children.flatMap(x => x[1].getAssignmentsByContainerDeep(container))
+        ]
+    }
+    
     getAssignments() {
         return this._assignments
+    }
+    
+    getAssignmentsDeep(): SymbolTable['_assignments'] {
+        return [
+            ...this._assignments,
+            ...this._children.flatMap(x => x[1].getAssignmentsDeep())
+        ]
     }
     
     setInstances(Env: Object) {

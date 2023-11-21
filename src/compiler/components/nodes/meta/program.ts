@@ -6,7 +6,6 @@ import {Scope} from "../../scope.js";
 import {ProgramConfiguration} from "../../../../program-configuration.js";
 import {parse} from "../../../parser/lua/lua-parser.js";
 import {SymbolTable} from "../../../table/symbol-table.js";
-import {LuaTiDiagnostic} from "../../../error/lua-ti-diagnostic.js";
 
 function chunkFlagFromKey(key: "constants" | "declarations" | "sources") {
     switch (key) {
@@ -27,12 +26,9 @@ export class Program extends BaseContainer<NodeKind.Program> {
     
     parent: Container | undefined;
     public readonly kind = NodeKind.Program
-    public readonly constants: ChunkContainer[] = []
-    public readonly declarations: ChunkContainer[] = []
-    public readonly sources: ChunkContainer[] = []
+    public readonly source: ChunkContainer
     public readonly node: ProgramNode
     private readonly _table: SymbolTable = new SymbolTable()
-    private readonly _diagnostics: LuaTiDiagnostic = new LuaTiDiagnostic()
     
     constructor(
         public readonly config: ProgramConfiguration
@@ -42,34 +38,14 @@ export class Program extends BaseContainer<NodeKind.Program> {
             type: 'Program',
             range: [0, 0]
         }
-        for (let key of (Object.keys(this.config.program) as (keyof ProgramConfiguration['program'])[])) {
-            for (let chunkConfig of this.config.program[key].files) {
-                const compilerOptions = chunkConfig.compilerOptions || this.config.program[key].compilerOptions || config.compilerOptions
-                const chunk = parse(
-                    this,
-                    {
-                        file: chunkConfig.file,
-                        path: this.config.program[key].path,
-                        flag: chunkFlagFromKey(key),
-                        inject: chunkConfig.inject,
-                        compilerOptions: compilerOptions
-                    }
-                )
-                this[key].push(chunk)
+        this.source = parse(
+            this,
+            {
+                file: config.program.file,
+                path: config.program.path,
+                compilerOptions: config.compilerOptions
             }
-        }
-    }
-    
-    get chunks(): ChunkContainer[] {
-        return [
-            ...this.constants,
-            ...this.declarations,
-            ...this.sources
-        ]
-    }
-    
-    override get diagnostic(): LuaTiDiagnostic {
-        return this._diagnostics
+        )
     }
     
     override get symbols(): SymbolTable {

@@ -17,15 +17,13 @@ function assignExpressionsToToken(node: LocalStatementContainer | AssignmentStat
     }
 }
 
-export function visitTableAssignInitializer(program: Program) {
-    program.sources.forEach(chunk => {
-        chunk.forEachDeep(node => {
-            if (node.kind === NodeKind.AssignmentStatement) {
-                assignExpressionsToToken(node)
-            } else if (node.kind === NodeKind.LocalStatement) {
-                assignExpressionsToToken(node)
-            }
-            return true
-        })
+export function collectAssignStatements(program: Program) {
+    program.source.forEachDeep(node => {
+        if (node.kind === NodeKind.AssignmentStatement) {
+            assignExpressionsToToken(node)
+        } else if (node.kind === NodeKind.LocalStatement) {
+            assignExpressionsToToken(node)
+        }
+        return true
     })
 }

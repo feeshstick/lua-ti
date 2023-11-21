@@ -11,7 +11,7 @@ import {Block, ContainerFlag2} from "../meta/block.js";
 import {SymbolAttribute} from "../../../table/symbol-table.js";
 
 export class FunctionExpressionContainer extends AbstractExpressionContainer<NodeKind.FunctionDeclaration> {
-    public readonly parameter: Array<IdentifierContainer | VarargLiteralContainer>
+    public readonly parameter: Array<ParameterContainer>
     public override readonly block: Block
     public readonly identifier: IdentifierContainer | MemberExpressionContainer | null
     public readonly kind = NodeKind.FunctionDeclaration;

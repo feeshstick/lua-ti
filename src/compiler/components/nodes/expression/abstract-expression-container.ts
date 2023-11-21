@@ -2,7 +2,7 @@ import {ExpressionContainer, NodeKind} from "../../container-types.js";
 import {BaseContainer} from "../../base-container.js";
 import {LuaTiErrorHelper} from "../../../error/lua-ti-error.js";
 import {Type} from "../../../type/type.js";
-import {Token, SymbolAttribute} from "../../../table/symbol-table.js";
+import {SymbolAttribute, Token} from "../../../table/symbol-table.js";
 
 export type ExpressionContainerKind =
     | NodeKind.Identifier
@@ -31,6 +31,10 @@ export abstract class AbstractExpressionContainer<E extends ExpressionContainerK
     private __narrow
     public attribute: SymbolAttribute = SymbolAttribute.Undefined
     __immutable: boolean = false
+    
+    get hasSymbol(): boolean {
+        return !!this.__symbol
+    }
     
     set symbol(symbol: Token) {
         if (symbol) {

@@ -13,7 +13,6 @@ import {ProgramDeclarationFile, ProgramFile} from "../../../../program-configura
 export interface ChunkContext extends ProgramFile {
     source: string
     path: string
-    flag: ChunkFlag
     compilerOptions: CompilerOptions
 }
 

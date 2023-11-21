@@ -261,7 +261,7 @@ export function forEachChild<E>(container: Container, consumer: (node: Container
         case NodeKind.Comment:
             break;
         case NodeKind.Program:
-            return visit(container.chunks)
+            return visit(container.source)
     }
     return undefined
 }
@@ -384,7 +384,7 @@ export function forEachChildExtended<E>(container: Container, consumer: (node: C
         case NodeKind.Comment:
             break;
         case NodeKind.Program:
-            return visit(container.chunks, 'chunks')
+            return visit(container.source, 'chunks')
     }
     return undefined
 }
