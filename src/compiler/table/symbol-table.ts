@@ -123,7 +123,11 @@ export class Token extends AbstractTable {
                             out.printBypassIndent(chalk.yellowBright(instanceString))
                         }
                     } else {
-                        out.println('└ instance', chalk.yellowBright(instanceString))
+                        if(typeof instance === 'object'){
+                            out.println('└ instance', chalk.yellowBright(JSON.stringify(instance)))
+                        } else {
+                            out.println('└ instance', chalk.yellowBright(instanceString))
+                        }
                     }
                     out.println(`└ ${chalk.italic('typeof')} instance`, typeof instance)
                 }

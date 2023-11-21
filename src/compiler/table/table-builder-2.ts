@@ -106,7 +106,7 @@ function applyAssignment(variables: VariableContainer[], expression: ExpressionC
                     const value = instance[i]
                     if (value instanceof Token) {
                         variables[i].symbol = value
-                        variables[i].symbol.properties.instance = value.properties.instance
+                        // variables[i].symbol.properties.instance = value.properties.instance
                     } else {
                         variables[i].symbol = new Token()
                         variables[i].symbol.properties.instance = value || null
@@ -118,7 +118,7 @@ function applyAssignment(variables: VariableContainer[], expression: ExpressionC
         } else {
             if (instance instanceof Token) {
                 variables[0].symbol = instance
-                variables[0].symbol.properties.instance = instance.properties.instance
+                // variables[0].symbol.properties.instance = instance.properties.instance
             } else {
                 variables[0].symbol = new Token()
                 variables[0].symbol.properties.instance = null
@@ -165,7 +165,6 @@ const tableVisitor: TableVisitor2 = {
                     if (!(typeGuideElement instanceof Array)) {
                         if (typeGuideElement.type === 'function') {
                             typeGuideElement.parameter(...node.parameter)
-                            console.log(typeGuideElement)
                         }
                     }
                 }
@@ -406,8 +405,9 @@ const tableVisitor: TableVisitor2 = {
         if (node.base.hasSymbol) {
             const _function = node.base.symbol.properties.instance
             if (_function && typeof _function === 'function') {
+                const result = _function(...node.arguments.map(x => x.symbol))
                 node.symbol = new Token(node)
-                node.symbol.properties.instance = _function(...node.arguments.map(x => x.symbol))
+                node.symbol.properties.instance = result
             } else {
                 console.error(node.base.text, 'no call')
                 throw new Error()
@@ -434,9 +434,33 @@ const tableVisitor: TableVisitor2 = {
                 node.symbol = node.identifier.symbol
                 break
             case ":":
-                console.log(node.base.symbol.properties.type)
-                if (!node.base.hasSymbol) {
-                    console.log('no sym')
+                if (node.base.symbol.properties.type) {
+                    const type = node.base.symbol.properties.type
+                    const tableReference = table.lookup(type)
+                    if (tableReference) {
+                        const targetFunctionEntry = tableReference?.lookup(node.identifier.name)
+                        if (targetFunctionEntry) {
+                            const targetFunction = targetFunctionEntry.properties.instance
+                            if (targetFunction) {
+                                if (typeof targetFunction === 'function') {
+                                    const token = new Token(node)
+                                    token.properties.instance = (...args) => {
+                                        return targetFunction(node.base.symbol, ...args)
+                                    }
+                                    node.identifier.symbol = token
+                                    node.symbol = token
+                                } else {
+                                    console.error(`${type}:${node.identifier.name} is not a function`)
+                                }
+                            } else {
+                                console.error(`${type}:${node.identifier.name} is undefined`)
+                            }
+                        } else {
+                            console.error(`type ${type} does not have a known member ${node.identifier.name}`)
+                        }
+                    } else {
+                        console.error(`type ${type} not found`)
+                    }
                 }
                 break
         }

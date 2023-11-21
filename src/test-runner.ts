@@ -2,8 +2,6 @@ import fs from "fs";
 import {Program} from "./compiler/components/nodes/meta/program.js";
 import {collectAssignStatements} from "./compiler/table/table-assign-initializer.js";
 import {globalInitializer} from "./compiler/table/global-initializer.js";
-import {NodeKind} from "./compiler/components/container-types.js";
-import {Token} from "./compiler/table/symbol-table.js";
 import {printAssignStatements, printSymbolCoverage, printSymbolTable} from "./utility/print.js";
 import {visitTableBuilder2} from "./compiler/table/table-builder-2.js";
 
@@ -43,5 +41,5 @@ export function runSimpleTest() {
     visitTableBuilder2(program)
     printSymbolCoverage(program.source)
     printSymbolTable(program.symbols)
-    // printAssignStatements(program.symbols)
+    printAssignStatements(program.symbols)
 }
