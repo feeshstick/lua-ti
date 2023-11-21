@@ -9,10 +9,10 @@ export type Effect = {
 }
 
 
-function deReference(instance: Token) {
+function ref(instance: Token) {
     if (typeof instance.properties.instance !== 'undefined') {
         if (instance.properties.instance instanceof Token) {
-            return deReference(instance.properties.instance)
+            return ref(instance.properties.instance)
         } else {
             return instance.properties.instance
         }
@@ -64,10 +64,10 @@ export function globalInitializer(program: Program) {
                     return token
                 },
                 SetDescription(__self: Token, description: Token) {
-                    __self.properties.instance['description'] = deReference(description.properties.instance)
+                    __self.properties.instance['description'] = ref(description.properties.instance)
                 },
                 SetType(__self: Token, type: Token) {
-                    __self.properties.instance['type'] = deReference(type)
+                    __self.properties.instance['type'] = ref(type)
                 },
                 SetTarget(__self: Token, operation: Token) {
                 },
@@ -87,24 +87,12 @@ export function globalInitializer(program: Program) {
             },
             Card: {
                 RegisterEffect(card: Token, effect: Token) {
-                    const effectData = effect.properties.instance
-                    console.log(effectData)
-                    if (effectData.type === Constants.EFFECT_TYPE_FIELD) {
-                        if (effectData.description !== `123:1`) {
-                            console.error('only 123:1 allowed')
-                        }
-                    }
-                    if (effectData.type === Constants.EFFECT_TYPE_SINGLE) {
-                        if (effectData.description !== `123:0`) {
-                            console.error('only 123:0 allowed')
-                        }
-                    }
                 }
             },
             aux: {
                 Stringid: (left: Token, right: Token) => {
                     const token = new Token()
-                    token.properties.instance = `${deReference(left)}:${deReference(right)}`
+                    token.properties.instance = (Number(ref(left)) & 0xfffff) | Number(ref(right)) << 20
                     return token
                 }
             },

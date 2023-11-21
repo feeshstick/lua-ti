@@ -62,7 +62,7 @@ import {VariableContainer} from "../components/nodes/expression/variable-contain
 export type TableVisitor2 = {
     [A in NodeKind]: (node: A extends Container['kind'] ? Extract<Container, {
         kind: A
-    }> : never, context: SymbolTable) => void
+    }> : never, context: SymbolTable, curse: (curse: VoidFunction) => void) => void
 }
 
 export function leftMostExpression(node: ExpressionContainer): ExpressionContainer {
@@ -133,18 +133,20 @@ function applyAssignment(variables: VariableContainer[], expression: ExpressionC
 }
 
 const tableVisitor: TableVisitor2 = {
-    [NodeKind.Program]: function (node: Program, table: SymbolTable): void {
-        visit(node.source, table)
+    [NodeKind.Program]: function (node: Program, table: SymbolTable, curse): void {
+        visit(node.source, table, curse)
     },
-    [NodeKind.Chunk]: function (node: ChunkContainer, table: SymbolTable): void {
-        visit(node.block, table)
+    [NodeKind.Chunk]: function (node: ChunkContainer, table: SymbolTable, curse): void {
+        visit(node.block, table, curse)
     },
-    [NodeKind.Block]: function (node: Block, table: SymbolTable): void {
+    [NodeKind.Block]: function (node: Block, table: SymbolTable, curse): void {
         for (let statement of node.statements) {
-            visit(statement, node.symbols)
+            curse(()=>{
+                visit(statement, node.symbols, curse)
+            })
         }
     },
-    [NodeKind.FunctionDeclaration]: function (node: FunctionExpressionContainer, table: SymbolTable): void {
+    [NodeKind.FunctionDeclaration]: function (node: FunctionExpressionContainer, table: SymbolTable, curse): void {
         if (node.identifier) {
             if (node.isLocal) {
                 const leftMost = leftMostExpression(node.identifier)
@@ -155,9 +157,9 @@ const tableVisitor: TableVisitor2 = {
                 } else {
                     throw new Error()
                 }
-                visit(node.identifier, table)
+                visit(node.identifier, table, curse)
             } else {
-                visit(node.identifier, table)
+                visit(node.identifier, table, curse)
             }
             const typeGuide = node.identifier.symbol.properties.typeGuide
             if (typeGuide) {
@@ -186,45 +188,45 @@ const tableVisitor: TableVisitor2 = {
                     break;
             }
         }
-        visit(node.block, table)
+        visit(node.block, table, curse)
     },
-    [NodeKind.ReturnStatement]: function (node: ReturnStatementContainer, table: SymbolTable): void {
+    [NodeKind.ReturnStatement]: function (node: ReturnStatementContainer, table: SymbolTable, curse): void {
         for (let i = 0; i < node.arguments.length; i++) {
             let argument = node.arguments[i];
-            visit(argument, table)
+            visit(argument, table, curse)
         }
     },
-    [NodeKind.IfStatement]: function (node: IfStatementContainer, table: SymbolTable): void {
+    [NodeKind.IfStatement]: function (node: IfStatementContainer, table: SymbolTable, curse): void {
         for (let clause of node.clauses) {
-            visit(clause, table)
+            visit(clause, table, curse)
         }
     },
-    [NodeKind.IfClause]: function (node: IfClauseContainer, table: SymbolTable): void {
-        visit(node.condition, table)
-        visit(node.block, table)
+    [NodeKind.IfClause]: function (node: IfClauseContainer, table: SymbolTable, curse): void {
+        visit(node.condition, table, curse)
+        visit(node.block, table, curse)
     },
-    [NodeKind.ElseifClause]: function (node: ElseifClauseContainer, table: SymbolTable): void {
-        visit(node.condition, table)
-        visit(node.block, table)
+    [NodeKind.ElseifClause]: function (node: ElseifClauseContainer, table: SymbolTable, curse): void {
+        visit(node.condition, table, curse)
+        visit(node.block, table, curse)
     },
-    [NodeKind.ElseClause]: function (node: ElseClauseContainer, table: SymbolTable): void {
-        visit(node.block, table)
+    [NodeKind.ElseClause]: function (node: ElseClauseContainer, table: SymbolTable, curse): void {
+        visit(node.block, table, curse)
     },
-    [NodeKind.WhileStatement]: function (node: WhileStatementContainer, table: SymbolTable): void {
-        visit(node.condition, table)
-        visit(node.block, table)
+    [NodeKind.WhileStatement]: function (node: WhileStatementContainer, table: SymbolTable, curse): void {
+        visit(node.condition, table, curse)
+        visit(node.block, table, curse)
     },
-    [NodeKind.DoStatement]: function (node: DoStatementContainer, table: SymbolTable): void {
-        visit(node.block, table)
+    [NodeKind.DoStatement]: function (node: DoStatementContainer, table: SymbolTable, curse): void {
+        visit(node.block, table, curse)
     },
-    [NodeKind.RepeatStatement]: function (node: RepeatStatementContainer, table: SymbolTable): void {
-        visit(node.condition, table)
-        visit(node.block, table)
+    [NodeKind.RepeatStatement]: function (node: RepeatStatementContainer, table: SymbolTable, curse): void {
+        visit(node.condition, table, curse)
+        visit(node.block, table, curse)
     },
-    [NodeKind.LocalStatement]: function (node: LocalStatementContainer, table: SymbolTable): void {
+    [NodeKind.LocalStatement]: function (node: LocalStatementContainer, table: SymbolTable, curse): void {
         for (let i = 0; i < node.init.length; i++) {
             let init = node.init[i];
-            visit(init, table)
+            visit(init, table, curse)
         }
         for (let [, variables, expression] of table.getAssignmentsByContainerDeep(node)) {
             applyAssignment(variables, expression)
@@ -235,10 +237,10 @@ const tableVisitor: TableVisitor2 = {
             table.lookup(variable.name) || table.enter(variable.name, variable.symbol)
         }
     },
-    [NodeKind.AssignmentStatement]: function (node: AssignmentStatementContainer, table: SymbolTable): void {
+    [NodeKind.AssignmentStatement]: function (node: AssignmentStatementContainer, table: SymbolTable, curse): void {
         for (let i = 0; i < node.init.length; i++) {
             let init = node.init[i];
-            visit(init, table)
+            visit(init, table, curse)
         }
         for (let [, variables, expression] of table.getAssignmentsByContainerDeep(node)) {
             applyAssignment(variables, expression)
@@ -251,44 +253,44 @@ const tableVisitor: TableVisitor2 = {
                     break;
                 case NodeKind.IndexExpression:
                     if (!variable.base.hasSymbol) {
-                        visit(variable.base, table)
-                        visit(variable.index, table)
+                        visit(variable.base, table, curse)
+                        visit(variable.index, table, curse)
                     }
                     break;
                 case NodeKind.MemberExpression:
-                    visit(variable.base, table)
+                    visit(variable.base, table, curse)
                     variable.base.symbol.lookup(variable.identifier.name) || variable.base.symbol.enter(variable.identifier.name, new Token(variable.identifier))
                     break;
             }
             variable.symbol.declarations.push(variable)
         }
     },
-    [NodeKind.ForNumericStatement]: function (node: ForNumericStatementContainer, table: SymbolTable): void {
+    [NodeKind.ForNumericStatement]: function (node: ForNumericStatementContainer, table: SymbolTable, curse): void {
         throw new Error("Not implemented.")
     },
-    [NodeKind.ForGenericStatement]: function (node: ForGenericStatementContainer, table: SymbolTable): void {
+    [NodeKind.ForGenericStatement]: function (node: ForGenericStatementContainer, table: SymbolTable, curse): void {
         throw new Error("Not implemented.")
     },
-    [NodeKind.StringLiteral]: function (node: StringLiteralContainer, table: SymbolTable): void {
+    [NodeKind.StringLiteral]: function (node: StringLiteralContainer, table: SymbolTable, curse): void {
         node.symbol = new Token(node)
         node.symbol.properties.instance = node.value
     },
-    [NodeKind.NumericLiteral]: function (node: NumericLiteralContainer, table: SymbolTable): void {
+    [NodeKind.NumericLiteral]: function (node: NumericLiteralContainer, table: SymbolTable, curse): void {
         node.symbol = new Token(node)
         node.symbol.properties.instance = node.value
     },
-    [NodeKind.BooleanLiteral]: function (node: BooleanLiteralContainer, table: SymbolTable): void {
+    [NodeKind.BooleanLiteral]: function (node: BooleanLiteralContainer, table: SymbolTable, curse): void {
         node.symbol = new Token(node)
         node.symbol.properties.instance = node.value
     },
-    [NodeKind.NilLiteral]: function (node: NilLiteralContainer, table: SymbolTable): void {
+    [NodeKind.NilLiteral]: function (node: NilLiteralContainer, table: SymbolTable, curse): void {
         node.symbol = new Token(node)
         node.symbol.properties.instance = null
     },
-    [NodeKind.VarargLiteral]: function (node: VarargLiteralContainer, table: SymbolTable): void {
+    [NodeKind.VarargLiteral]: function (node: VarargLiteralContainer, table: SymbolTable, curse): void {
         node.symbol = new Token(node)
     },
-    [NodeKind.BinaryExpression]: function (node: BinaryExpressionContainer, table: SymbolTable): void {
+    [NodeKind.BinaryExpression]: function (node: BinaryExpressionContainer, table: SymbolTable, curse): void {
         node.symbol = new Token(node)
         switch (node.operator) {
             case BinaryExpressionOperator.add:
@@ -349,15 +351,15 @@ const tableVisitor: TableVisitor2 = {
                 node.type = LuaBasicType.Boolean
                 break;
         }
-        visit(node.left, table)
-        visit(node.right, table)
+        visit(node.left, table, curse)
+        visit(node.right, table, curse)
     },
-    [NodeKind.LogicalExpression]: function (node: LogicalExpressionContainer, table: SymbolTable): void {
+    [NodeKind.LogicalExpression]: function (node: LogicalExpressionContainer, table: SymbolTable, curse): void {
         node.symbol = new Token(node)
         switch (node.operator) {
             case "or":
-                visit(node.left, table)
-                visit(node.right, table)
+                visit(node.left, table, curse)
+                visit(node.right, table, curse)
                 node.type = {
                     kind: TypeKind.Conditional,
                     left: node.left.type,
@@ -365,8 +367,8 @@ const tableVisitor: TableVisitor2 = {
                 }
                 break
             case "and":
-                visit(node.left, table)
-                visit(node.right, table)
+                visit(node.left, table, curse)
+                visit(node.right, table, curse)
                 node.type = {
                     kind: TypeKind.Conditional,
                     left: node.right.type,
@@ -375,7 +377,7 @@ const tableVisitor: TableVisitor2 = {
                 break
         }
     },
-    [NodeKind.UnaryExpression]: function (node: UnaryExpressionContainer, table: SymbolTable): void {
+    [NodeKind.UnaryExpression]: function (node: UnaryExpressionContainer, table: SymbolTable, curse): void {
         node.symbol = new Token(node)
         switch (node.operator) {
             case UnaryExpressionOperator.Not:
@@ -391,17 +393,17 @@ const tableVisitor: TableVisitor2 = {
                 node.type = LuaBasicType.Number
                 break;
         }
-        visit(node.argument, table)
+        visit(node.argument, table, curse)
     },
-    [NodeKind.CallStatement]: function (node: CallStatementContainer, table: SymbolTable): void {
-        visit(node.expression, table)
+    [NodeKind.CallStatement]: function (node: CallStatementContainer, table: SymbolTable, curse): void {
+        visit(node.expression, table, curse)
     },
-    [NodeKind.CallExpression]: function (node: CallExpressionContainer, table: SymbolTable): void {
+    [NodeKind.CallExpression]: function (node: CallExpressionContainer, table: SymbolTable, curse): void {
         for (let i = 0; i < node.arguments.length; i++) {
             let argument = node.arguments[i];
-            visit(argument, table)
+            visit(argument, table, curse)
         }
-        visit(node.base, table)
+        visit(node.base, table, curse)
         if (node.base.hasSymbol) {
             const _function = node.base.symbol.properties.instance
             if (_function && typeof _function === 'function') {
@@ -415,19 +417,19 @@ const tableVisitor: TableVisitor2 = {
             // printSymbolTable(node.base.symbol)
         }
     },
-    [NodeKind.TableCallExpression]: function (node: TableCallExpressionContainer, table: SymbolTable): void {
-        visit(node.base, table)
+    [NodeKind.TableCallExpression]: function (node: TableCallExpressionContainer, table: SymbolTable, curse): void {
+        visit(node.base, table, curse)
     },
-    [NodeKind.StringCallExpression]: function (node: StringCallExpressionContainer, table: SymbolTable): void {
-        visit(node.base, table)
+    [NodeKind.StringCallExpression]: function (node: StringCallExpressionContainer, table: SymbolTable, curse): void {
+        visit(node.base, table, curse)
     },
-    [NodeKind.Identifier]: function (node: IdentifierContainer, table: SymbolTable): void {
+    [NodeKind.Identifier]: function (node: IdentifierContainer, table: SymbolTable, curse): void {
         if (!node.hasSymbol) {
             node.symbol = table.lookup(node.name) || table.global.enter(node.name, new Token(node))
         }
     },
-    [NodeKind.MemberExpression]: function (node: MemberExpressionContainer, table: SymbolTable): void {
-        visit(node.base, table)
+    [NodeKind.MemberExpression]: function (node: MemberExpressionContainer, table: SymbolTable, curse): void {
+        visit(node.base, table, curse)
         switch (node.indexer) {
             case ".":
                 node.identifier.symbol = node.base.symbol.lookup(node.identifier.name) || node.base.symbol.enter(node.identifier.name, new Token(node.identifier))
@@ -465,11 +467,11 @@ const tableVisitor: TableVisitor2 = {
                 break
         }
     },
-    [NodeKind.IndexExpression]: function (node: IndexExpressionContainer, table: SymbolTable): void {
-        visit(node.index, table)
-        visit(node.base, table)
+    [NodeKind.IndexExpression]: function (node: IndexExpressionContainer, table: SymbolTable, curse): void {
+        visit(node.index, table, curse)
+        visit(node.base, table, curse)
     },
-    [NodeKind.TableConstructorExpression]: function (node: TableConstructorExpressionContainer, table: SymbolTable): void {
+    [NodeKind.TableConstructorExpression]: function (node: TableConstructorExpressionContainer, table: SymbolTable, curse): void {
         const symbol = new Token(node)
         for (let i = 0; i < node.fields.length; i++) {
             let field = node.fields[i];
@@ -487,11 +489,11 @@ const tableVisitor: TableVisitor2 = {
         }
         node.symbol = symbol
     },
-    [NodeKind.TableKey]: function (node: TableKeyContainer, table: SymbolTable): void {
+    [NodeKind.TableKey]: function (node: TableKeyContainer, table: SymbolTable, curse): void {
     },
-    [NodeKind.TableKeyString]: function (node: TableKeyStringContainer, table: SymbolTable): void {
+    [NodeKind.TableKeyString]: function (node: TableKeyStringContainer, table: SymbolTable, curse): void {
     },
-    [NodeKind.TableValue]: function (node: TableValueContainer, table: SymbolTable): void {
+    [NodeKind.TableValue]: function (node: TableValueContainer, table: SymbolTable, curse): void {
     },
     [NodeKind.Comment]: function (node: CommentContainer): void {
     },
@@ -504,12 +506,22 @@ const tableVisitor: TableVisitor2 = {
 }
 
 export function visitTableBuilder2(program: Program) {
-    visit(program.source, program.source.symbols)
+    let curses: VoidFunction[] = []
+    visit(program.source, program.source.symbols, curse => {
+        curses.push(curse)
+    })
+    while (curses.length > 0) {
+        const curseNow = curses
+        curses = []
+        for (let voidFunction of curseNow) {
+            voidFunction()
+        }
+    }
 }
 
-function visit(node: Container, table: SymbolTable) {
+function visit(node: Container, table: SymbolTable, curse: (curse: VoidFunction) => void) {
     if (node.compilerOptions.parserOptions && node.compilerOptions.parserOptions.ignore.includes(node.kind)) {
         return
     }
-    tableVisitor[node.kind](node as never, table)
+    tableVisitor[node.kind](node as never, table, curse)
 }
