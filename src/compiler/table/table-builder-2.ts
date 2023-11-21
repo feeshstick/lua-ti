@@ -1,10 +1,4 @@
-import {
-    BinaryExpressionOperator,
-    Container,
-    ExpressionContainer,
-    NodeKind,
-    UnaryExpressionOperator
-} from "../components/container-types.js";
+import {Container, ExpressionContainer, NodeKind} from "../components/container-types.js";
 import {SymbolTable, Token} from "./symbol-table.js";
 import {Program} from "../components/nodes/meta/program.js";
 import {ChunkContainer} from "../components/nodes/meta/chunk-container.js";
@@ -30,11 +24,9 @@ import {VarargLiteralContainer} from "../components/nodes/expression/literal/var
 import {
     BinaryExpressionContainer
 } from "../components/nodes/expression/binary-expression/binary-expression-container.js";
-import {LuaBasicType} from "../parser/annotation/annotation.js";
 import {
     LogicalExpressionContainer
 } from "../components/nodes/expression/binary-expression/logical-expression-container.js";
-import {TypeKind} from "../type/type.js";
 import {UnaryExpressionContainer} from "../components/nodes/expression/unary-expression-container.js";
 import {CallStatementContainer} from "../components/nodes/statement/call-statement-container.js";
 import {CallExpressionContainer} from "../components/nodes/expression/call-expression/call-expression-container.js";
@@ -141,7 +133,7 @@ const tableVisitor: TableVisitor2 = {
     },
     [NodeKind.Block]: function (node: Block, table: SymbolTable, curse): void {
         for (let statement of node.statements) {
-            curse(()=>{
+            curse(() => {
                 visit(statement, node.symbols, curse)
             })
         }
@@ -292,65 +284,6 @@ const tableVisitor: TableVisitor2 = {
     },
     [NodeKind.BinaryExpression]: function (node: BinaryExpressionContainer, table: SymbolTable, curse): void {
         node.symbol = new Token(node)
-        switch (node.operator) {
-            case BinaryExpressionOperator.add:
-                node.type = LuaBasicType.Number
-                break;
-            case BinaryExpressionOperator.sub:
-                node.type = LuaBasicType.Number
-                break;
-            case BinaryExpressionOperator.mul:
-                node.type = LuaBasicType.Number
-                break;
-            case BinaryExpressionOperator.mod:
-                node.type = LuaBasicType.Number
-                break;
-            case BinaryExpressionOperator.exp:
-                node.type = LuaBasicType.Number
-                break;
-            case BinaryExpressionOperator.div:
-                node.type = LuaBasicType.Number
-                break;
-            case BinaryExpressionOperator.divFloor:
-                node.type = LuaBasicType.Number
-                break;
-            case BinaryExpressionOperator.and:
-                node.type = LuaBasicType.Number
-                break;
-            case BinaryExpressionOperator.or:
-                node.type = LuaBasicType.Number
-                break;
-            case BinaryExpressionOperator.xor:
-                node.type = LuaBasicType.Number
-                break;
-            case BinaryExpressionOperator.shiftLeft:
-                node.type = LuaBasicType.Number
-                break;
-            case BinaryExpressionOperator.shiftRight:
-                node.type = LuaBasicType.Number
-                break;
-            case BinaryExpressionOperator.concat:
-                node.type = LuaBasicType.String
-                break;
-            case BinaryExpressionOperator.compare_ne:
-                node.type = LuaBasicType.Boolean
-                break;
-            case BinaryExpressionOperator.compare_eq:
-                node.type = LuaBasicType.Boolean
-                break;
-            case BinaryExpressionOperator.compare_lt:
-                node.type = LuaBasicType.Boolean
-                break;
-            case BinaryExpressionOperator.compare_le:
-                node.type = LuaBasicType.Boolean
-                break;
-            case BinaryExpressionOperator.compare_gt:
-                node.type = LuaBasicType.Boolean
-                break;
-            case BinaryExpressionOperator.compare_ge:
-                node.type = LuaBasicType.Boolean
-                break;
-        }
         visit(node.left, table, curse)
         visit(node.right, table, curse)
     },
@@ -360,39 +293,15 @@ const tableVisitor: TableVisitor2 = {
             case "or":
                 visit(node.left, table, curse)
                 visit(node.right, table, curse)
-                node.type = {
-                    kind: TypeKind.Conditional,
-                    left: node.left.type,
-                    right: node.right.type
-                }
                 break
             case "and":
                 visit(node.left, table, curse)
                 visit(node.right, table, curse)
-                node.type = {
-                    kind: TypeKind.Conditional,
-                    left: node.right.type,
-                    right: node.left.type
-                }
                 break
         }
     },
     [NodeKind.UnaryExpression]: function (node: UnaryExpressionContainer, table: SymbolTable, curse): void {
         node.symbol = new Token(node)
-        switch (node.operator) {
-            case UnaryExpressionOperator.Not:
-                node.type = LuaBasicType.Boolean
-                break;
-            case UnaryExpressionOperator.Length:
-                node.type = LuaBasicType.Number
-                break;
-            case UnaryExpressionOperator.BitNegate:
-                node.type = LuaBasicType.Number
-                break;
-            case UnaryExpressionOperator.ArithmeticNegate:
-                node.type = LuaBasicType.Number
-                break;
-        }
         visit(node.argument, table, curse)
     },
     [NodeKind.CallStatement]: function (node: CallStatementContainer, table: SymbolTable, curse): void {
