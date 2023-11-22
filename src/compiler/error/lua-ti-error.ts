@@ -36,6 +36,12 @@ export const LuaTiErrorHelper = {
             `tried to access undefined container symbol ${NodeKind[node.kind]} $${node.id} ${node.text} ${this.location(node)}`
         )
     },
+    CannotAssignUndefinedSymbol(node: ExpressionContainer) {
+        return new LuaTiError(LuaTiErrorLevel.Internal, LuaTiErrorCode.CannotAssignUndefinedSymbol, `Cannot assign undefined symbol ${node.text} ${this.location(node)}`, this.createErrorContext(node))
+    },
+    CannotAccessCompilerOptionsOfRootFile() {
+        return new LuaTiError(LuaTiErrorLevel.Internal, LuaTiErrorCode.CannotAccessCompilerOptionsOfRootFile, `Cannot access compiler-options of root-file`)
+    },
     location(node: Container) {
         const path = node.chunk.context.path
         const file = node.chunk.context.file
@@ -44,12 +50,6 @@ export const LuaTiErrorHelper = {
         } else {
             return node.errLoc
         }
-    },
-    CannotAssignUndefinedSymbol(node: ExpressionContainer) {
-        return new LuaTiError(LuaTiErrorLevel.Internal, LuaTiErrorCode.CannotAssignUndefinedSymbol, `Cannot assign undefined symbol ${node.text} ${this.location(node)}`, this.createErrorContext(node))
-    },
-    CannotAccessCompilerOptionsOfRootFile() {
-        return new LuaTiError(LuaTiErrorLevel.Internal, LuaTiErrorCode.CannotAccessCompilerOptionsOfRootFile, `Cannot access compiler-options of root-file`)
     },
     createErrorContext(node: Container) {
         return {
