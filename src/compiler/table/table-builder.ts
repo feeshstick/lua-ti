@@ -51,7 +51,7 @@ import {BreakStatementContainer} from "../components/nodes/statement/break-state
 import {GotoStatementContainer} from "../components/nodes/statement/goto-statement-container.js";
 import {VariableContainer} from "../components/nodes/expression/variable-container.js";
 
-export type TableVisitor2 = {
+export type TableVisitor = {
     [A in NodeKind]: (node: A extends Container['kind'] ? Extract<Container, {
         kind: A
     }> : never, context: SymbolTable, curse: (curse: VoidFunction) => void) => void
@@ -124,7 +124,7 @@ function applyAssignment(variables: VariableContainer[], expression: ExpressionC
     }
 }
 
-const tableVisitor: TableVisitor2 = {
+const tableVisitor: TableVisitor = {
     [NodeKind.Program]: function (node: Program, table: SymbolTable, curse): void {
         visit(node.source, table, curse)
     },
