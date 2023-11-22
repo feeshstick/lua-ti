@@ -1,5 +1,5 @@
 import {Container, ExpressionContainer, NodeKind} from "../components/container-types.js";
-import {SymbolTable, Token} from "./symbol-table.js";
+import {SymbolTable, Token, TypeGuide} from "./symbol-table.js";
 import {Program} from "../components/nodes/meta/program.js";
 import {ChunkContainer} from "../components/nodes/meta/chunk-container.js";
 import {Block} from "../components/nodes/meta/block.js";
@@ -155,32 +155,53 @@ const tableVisitor: TableVisitor2 = {
             }
             const typeGuide = node.identifier.symbol.properties.typeGuide
             if (typeGuide) {
-                for (let typeGuideElement of typeGuide) {
-                    if (!(typeGuideElement instanceof Array)) {
-                        if (typeGuideElement.type === 'function') {
-                            typeGuideElement.parameter(...node.parameter)
-                        }
+                continueTypeGuide(typeGuide)
+            } else {
+                node.symbol = node.identifier.symbol
+                node.symbol.declarations.push(node)
+                node.visitLater = () => {
+                    if(node.identifier!.symbol.properties.typeGuide){
+                        continueTypeGuide(node.identifier!.symbol.properties.typeGuide!)
+                        continueVisit()
+                    } else{
+                        console.error('continue visit without type guide')
+                    }
+                }
+                return
+            }
+        } else {
+            throw new Error("Not implemented. Try to declare the function, otherwise it cannot be checked.")
+        }
+        continueVisit()
+        
+        function continueTypeGuide(typeGuide: TypeGuide[]) {
+            for (let typeGuideElement of typeGuide) {
+                if (!(typeGuideElement instanceof Array)) {
+                    if (typeGuideElement.type === 'function') {
+                        typeGuideElement.parameter(...node.parameter)
+                        console.log(node.identifier!.text)
                     }
                 }
             }
-        } else {
-            throw new Error("Not implemented.")
         }
-        for (let i = 0; i < node.parameter.length; i++) {
-            let parameter = node.parameter[i];
-            switch (parameter.kind) {
-                case NodeKind.VarargLiteral:
-                    break;
-                case NodeKind.Identifier:
-                    if (!parameter.hasSymbol) {
-                        parameter.symbol = node.functionBody.symbols.enter(parameter.name, new Token(parameter))
-                    } else {
-                        node.functionBody.symbols.enter(parameter.name, parameter.symbol)
-                    }
-                    break;
+        
+        function continueVisit() {
+            for (let i = 0; i < node.parameter.length; i++) {
+                let parameter = node.parameter[i];
+                switch (parameter.kind) {
+                    case NodeKind.VarargLiteral:
+                        break;
+                    case NodeKind.Identifier:
+                        if (!parameter.hasSymbol) {
+                            parameter.symbol = node.functionBody.symbols.enter(parameter.name, new Token(parameter))
+                        } else {
+                            node.functionBody.symbols.enter(parameter.name, parameter.symbol)
+                        }
+                        break;
+                }
             }
+            visit(node.block, table, curse)
         }
-        visit(node.block, table, curse)
     },
     [NodeKind.ReturnStatement]: function (node: ReturnStatementContainer, table: SymbolTable, curse): void {
         for (let i = 0; i < node.arguments.length; i++) {
@@ -251,7 +272,8 @@ const tableVisitor: TableVisitor2 = {
                     break;
                 case NodeKind.MemberExpression:
                     visit(variable.base, table, curse)
-                    variable.base.symbol.lookup(variable.identifier.name) || variable.base.symbol.enter(variable.identifier.name, new Token(variable.identifier))
+                    variable.base.symbol.lookup(variable.identifier.name)
+                    || variable.base.symbol.enter(variable.identifier.name, new Token(variable.identifier))
                     break;
             }
             variable.symbol.declarations.push(variable)
@@ -323,14 +345,15 @@ const tableVisitor: TableVisitor2 = {
                 console.error(node.base.text, 'no call')
                 throw new Error()
             }
-            // printSymbolTable(node.base.symbol)
         }
     },
     [NodeKind.TableCallExpression]: function (node: TableCallExpressionContainer, table: SymbolTable, curse): void {
         visit(node.base, table, curse)
+        throw new Error('table call expressions not supported')
     },
     [NodeKind.StringCallExpression]: function (node: StringCallExpressionContainer, table: SymbolTable, curse): void {
         visit(node.base, table, curse)
+        throw new Error('string call expressions not supported')
     },
     [NodeKind.Identifier]: function (node: IdentifierContainer, table: SymbolTable, curse): void {
         if (!node.hasSymbol) {
@@ -372,6 +395,8 @@ const tableVisitor: TableVisitor2 = {
                     } else {
                         console.error(`type ${type} not found`)
                     }
+                } else {
+                    console.error(`${node.base.text} has no type set, cannot resolve member ${node.identifier.text} to function`)
                 }
                 break
         }

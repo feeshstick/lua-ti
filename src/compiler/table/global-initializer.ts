@@ -1,7 +1,8 @@
 import {Program} from "../components/nodes/meta/program.js";
 import {SymbolTable, Token} from "./symbol-table.js";
 import {createStringBuilder} from "../utility/string-builder.js";
-import {ParameterContainer} from "../components/container-types.js";
+import {NodeKind, ParameterContainer} from "../components/container-types.js";
+import {FunctionExpressionContainer} from "../components/nodes/expression/function-expression-container.js";
 
 export type Card = {}
 export type Effect = {
@@ -22,9 +23,20 @@ function ref(instance: Token) {
 export enum Constants {
     EFFECT_TYPE_FIELD,
     EFFECT_TYPE_SINGLE,
+    EFFECT_TYPE_ACTIVATE,
+    EVENT_FREE_CHAIN,
+    EFFECT_CANNOT_ATTACK_ANNOUNCE,
+    LOCATION_SZONE,
+    EFFECT_SELF_DESTROY,
+    EFFECT_FLAG_SINGLE_RANGE,
     LOCATION_MZONE,
     LOCATION_HAND
 }
+
+export type EFFECT_TYPE =
+    | Constants.EFFECT_TYPE_FIELD
+    | Constants.EFFECT_TYPE_SINGLE
+    | Constants.EFFECT_TYPE_ACTIVATE
 
 export function globalInitializer(program: Program) {
     function getConstants() {
@@ -67,19 +79,34 @@ export function globalInitializer(program: Program) {
                     __self.properties.instance['description'] = ref(description.properties.instance)
                 },
                 SetType(__self: Token, type: Token) {
-                    __self.properties.instance['type'] = ref(type)
+                    __self.properties.instance['type'] = Constants[ref(type)]
                 },
                 SetTarget(__self: Token, operation: Token) {
+                    __self.properties.instance['target'] = Constants[ref(operation)]
                 },
                 SetOperation(__self: Token, operation: Token) {
+                    __self.properties.instance['operation'] = Constants[ref(operation)]
                 },
                 SetCondition(__self: Token, operation: Token) {
+                    __self.properties.instance['condition'] = operation
+                },
+                SetCode(__self: Token, operation: Token) {
+                    __self.properties.instance['code'] = Constants[ref(operation)]
+                },
+                SetRange(__self: Token, operation: Token) {
+                    __self.properties.instance['range'] = Constants[ref(operation)]
+                },
+                SetTargetRange(__self: Token, number: Token, operation: Token) {
+                    __self.properties.instance['target_range'] = Constants[ref(operation)]
+                },
+                SetProperty(__self: Token, operation: Token) {
+                    __self.properties.instance['property'] = Constants[ref(operation)]
                 },
             },
             Duel: {
                 GetFieldGroupCount(player: Token, playerSide: Token, opponentSide: Token) {
                     if (player.properties.type) {
-                        console.error('not a primitive type')
+                        console.error(`expected=number actual=${player.properties.type}`)
                     } else if (player.properties.instance && typeof player.properties.instance !== 'number') {
                         console.error('not a number')
                     }
@@ -87,6 +114,33 @@ export function globalInitializer(program: Program) {
             },
             Card: {
                 RegisterEffect(card: Token, effect: Token) {
+                    const data = effect.properties.instance
+                    const type = Constants[data.type] as unknown as EFFECT_TYPE
+                    switch (type) {
+                        case Constants.EFFECT_TYPE_FIELD:
+                            (data.condition as Token).properties.typeGuide = [{
+                                type: 'function',
+                                parameter: (e, tp) => {
+                                    e.symbol = new Token()
+                                    e.symbol.properties.type = 'Effect'
+                                    tp.symbol = new Token()
+                                    tp.symbol.properties.type = 'Card'
+                                }
+                            }];
+                            for (let filterElement of (data.condition as Token).declarations.filter(x => x.kind === NodeKind.FunctionDeclaration)) {
+                                (filterElement as FunctionExpressionContainer).visitLater!()
+                            }
+                            break;
+                        case Constants.EFFECT_TYPE_SINGLE:
+                            console.log(data.condition)
+                            break;
+                        case Constants.EFFECT_TYPE_ACTIVATE:
+                            console.log(data.condition)
+                            break;
+                        default:
+                            console.error(`type ${effect.properties.instance.type} is not a known type.`)
+                            break
+                    }
                 }
             },
             aux: {

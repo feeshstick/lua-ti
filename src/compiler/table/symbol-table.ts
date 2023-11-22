@@ -5,6 +5,7 @@ import {LuaTiErrorHelper} from "../error/lua-ti-error.js";
 import {VariableContainer} from "../components/nodes/expression/variable-container.js";
 import {AssignContainer} from "../components/nodes/statement/assign/assign-container.js";
 import chalk from "chalk";
+import * as util from "util";
 
 
 export enum SymbolAttribute {
@@ -54,7 +55,7 @@ export abstract class AbstractTable {
     }
 }
 
-interface FunctionTypeGuide {
+export interface FunctionTypeGuide {
     type: 'function'
     parameter: (...args: ParameterContainer[]) => void
 }
@@ -118,13 +119,28 @@ export class Token extends AbstractTable {
                     if (instanceString.includes('\n')) {
                         out.println('└ instance')
                         if (typeof this.properties.instance === 'function') {
-                            out.printBypassIndent(chalk.yellowBright(instanceString))
+                            out.println(chalk.italic(instanceString))
                         } else {
-                            out.printBypassIndent(chalk.yellowBright(instanceString))
+                            out.println(chalk.italic(instanceString))
                         }
                     } else {
-                        if(typeof instance === 'object'){
-                            out.println('└ instance', chalk.yellowBright(JSON.stringify(instance)))
+                        if (typeof instance === 'object') {
+                            out.namedBlock('└ instance', () => {
+                                printObj(instance)
+                                function printObj(obj: any) {
+                                    for (let [key, value] of Object.entries(obj)) {
+                                        if(key!=='_parent'&&key!=='declarations'){
+                                            if (typeof value === 'object') {
+                                                out.namedBlock(chalk.italic(key), ()=>{
+                                                    printObj(value)
+                                                })
+                                            } else {
+                                                out.println('└ '+chalk.bold(key), chalk.italic(value))
+                                            }
+                                        }
+                                    }
+                                }
+                            },'|')
                         } else {
                             out.println('└ instance', chalk.yellowBright(instanceString))
                         }
@@ -133,12 +149,16 @@ export class Token extends AbstractTable {
                 }
                 if (this.properties.type) out.println(`└ type`, this.properties.type)
                 if (this.properties.typeGuide) {
-                    out.println('└ type-guide', JSON.stringify(this.properties.typeGuide, (key, value) => {
-                        if (typeof value === 'function') {
-                            return value.toString().replace(/\s+/gm, ' ')
-                        } else {
-                            return value
-                        }
+                    // JSON.stringify(this.properties.typeGuide, (key, value) => {
+                    //     if (typeof value === 'function') {
+                    //         return value.toString().replace(/\s+/gm, ' ')
+                    //     } else {
+                    //         return value
+                    //     }
+                    // })
+                    out.println('└ type-guide', util.inspect(this.properties.typeGuide, {
+                        colors: true,
+                        compact:true,
                     }))
                 }
             })

@@ -15,6 +15,7 @@ export class FunctionExpressionContainer extends AbstractExpressionContainer<Nod
     public override readonly block: Block
     public readonly identifier: IdentifierContainer | MemberExpressionContainer | null
     public readonly kind = NodeKind.FunctionDeclaration;
+    visitLater: VoidFunction | undefined;
     
     constructor(
         public readonly node: FunctionDeclaration,
