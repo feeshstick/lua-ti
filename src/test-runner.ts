@@ -1,7 +1,7 @@
 import fs from "fs";
 import {Program} from "./compiler/components/nodes/meta/program.js";
 import {collectAssignStatements} from "./compiler/table/table-assign-initializer.js";
-import {globalInitializer} from "./compiler/table/global-initializer.js";
+import {globalInitializer} from "./compiler/table/global/global-initializer.js";
 import {printAssignStatements, printSymbolCoverage, printSymbolTable} from "./utility/print.js";
 import {visitTableBuilder2} from "./compiler/table/table-builder-2.js";
 

@@ -66,6 +66,22 @@ export type TypeGuide =
 
 export class Token extends AbstractTable {
     
+    static typeGuard(obj: any): Token {
+        if (obj instanceof Token) {
+            return obj
+        } else {
+            if (typeof obj === 'object') {
+                throw new Error(`${util.inspect(obj, {colors: true, depth: 1})} is not instance of Token`)
+            } else {
+                throw new Error(`Type of ${obj} (${typeof obj}) is not a Token`)
+            }
+        }
+    }
+    
+    static isToken(obj: any): obj is Token {
+        return obj instanceof Token
+    }
+    
     private _parent: Token | SymbolTable | undefined
     public readonly declarations: Container[]
     public table: SymbolTable | undefined
@@ -127,20 +143,21 @@ export class Token extends AbstractTable {
                         if (typeof instance === 'object') {
                             out.namedBlock('└ instance', () => {
                                 printObj(instance)
+                                
                                 function printObj(obj: any) {
                                     for (let [key, value] of Object.entries(obj)) {
-                                        if(key!=='_parent'&&key!=='declarations'){
+                                        if (key !== '_parent' && key !== 'declarations') {
                                             if (typeof value === 'object') {
-                                                out.namedBlock(chalk.italic(key), ()=>{
+                                                out.namedBlock(chalk.italic(key), () => {
                                                     printObj(value)
                                                 })
                                             } else {
-                                                out.println('└ '+chalk.bold(key), chalk.italic(value))
+                                                out.println('└ ' + chalk.bold(key), chalk.italic(value))
                                             }
                                         }
                                     }
                                 }
-                            },'|')
+                            }, '|')
                         } else {
                             out.println('└ instance', chalk.yellowBright(instanceString))
                         }
@@ -158,7 +175,7 @@ export class Token extends AbstractTable {
                     // })
                     out.println('└ type-guide', util.inspect(this.properties.typeGuide, {
                         colors: true,
-                        compact:true,
+                        compact: true,
                     }))
                 }
             })
@@ -180,6 +197,16 @@ export class Token extends AbstractTable {
                 })
             }
         })
+    }
+    
+    get reference() {
+        if (typeof this.properties.instance !== 'undefined') {
+            if (this.properties.instance instanceof Token) {
+                return this.properties.instance.reference
+            } else {
+                return this.properties.instance
+            }
+        }
     }
     
     setInstances(obj: any) {
