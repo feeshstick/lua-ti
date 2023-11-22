@@ -3,11 +3,9 @@ import {Scope} from "../../../scope.js";
 import {AbstractExpressionContainer} from "../abstract-expression-container.js";
 
 import {Container, NodeKind} from "../../../container-types.js";
-import {ParameterAnnotation} from "../../../../annotation/annotation.js";
 
 export class IdentifierContainer extends AbstractExpressionContainer<NodeKind.Identifier> {
     public readonly kind = NodeKind.Identifier;
-    public parameterAnnotation: ParameterAnnotation | undefined
     
     constructor(
         public readonly node: Identifier,

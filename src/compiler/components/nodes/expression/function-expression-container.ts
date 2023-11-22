@@ -7,15 +7,15 @@ import {AbstractExpressionContainer} from "./abstract-expression-container.js";
 import {Container, createContainer, NodeKind, ParameterContainer} from "../../container-types.js";
 import {MemberExpressionContainer} from "./member-expression-container.js";
 
-import {BlockContainer} from "../meta/block-container.js";
-import {SignatureAnnotation} from "../../../annotation/annotation.js";
+import {Block, ContainerFlag2} from "../meta/block.js";
+import {SymbolAttribute} from "../../../table/symbol-table.js";
 
 export class FunctionExpressionContainer extends AbstractExpressionContainer<NodeKind.FunctionDeclaration> {
-    public readonly parameter: Array<IdentifierContainer | VarargLiteralContainer>
-    public override readonly block: BlockContainer
+    public readonly parameter: Array<ParameterContainer>
+    public override readonly block: Block
     public readonly identifier: IdentifierContainer | MemberExpressionContainer | null
     public readonly kind = NodeKind.FunctionDeclaration;
-    public signatureAnnotation: SignatureAnnotation | undefined
+    visitLater: VoidFunction | undefined;
     
     constructor(
         public readonly node: FunctionDeclaration,
@@ -28,6 +28,7 @@ export class FunctionExpressionContainer extends AbstractExpressionContainer<Nod
         let hasVarargs: boolean = false
         for (let parameterNode of this.node.parameters) {
             const parameter = createContainer(parameterNode, this, blockScope) as ParameterContainer
+            parameter.attribute = SymbolAttribute.ParameterDeclaration
             parameterList.push(parameter)
             if (parameter.kind === NodeKind.VarargLiteral) {
                 if (hasVarargs) {
@@ -43,12 +44,12 @@ export class FunctionExpressionContainer extends AbstractExpressionContainer<Nod
             }
         }
         this.parameter = parameterList
-        this.block = new BlockContainer({
+        this.block = new Block({
             type: 'Block',
             statements: this.node.body,
             range: this.range,
             loc: this.node.loc
-        }, this, blockScope)
+        }, this, ContainerFlag2.FunctionScope, blockScope)
         if (this.node.identifier) {
             this.identifier = createContainer(this.node.identifier, this, scope) as IdentifierContainer | MemberExpressionContainer
         } else {
@@ -56,11 +57,15 @@ export class FunctionExpressionContainer extends AbstractExpressionContainer<Nod
         }
     }
     
+    get functionBody(): Block {
+        return this.block
+    }
+    
     get isLocal(): boolean {
         return this.node.isLocal
     }
     
-    forEachChild(node: (node: IdentifierContainer | VarargLiteralContainer | BlockContainer | MemberExpressionContainer) => void) {
+    forEachChild(node: (node: IdentifierContainer | VarargLiteralContainer | Block | MemberExpressionContainer) => void) {
         if (this.identifier) node(this.identifier)
         for (let parameterElement of this.parameter) {
             node(parameterElement)

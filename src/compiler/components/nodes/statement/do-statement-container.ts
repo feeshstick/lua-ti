@@ -2,11 +2,11 @@ import {DoStatement} from "luaparse/lib/ast.js";
 import {BaseContainer} from "../../base-container.js";
 import {Scope} from "../../scope.js";
 import {BlockStatement, Container, NodeKind} from "../../container-types.js";
-import {BlockContainer} from "../meta/block-container.js";
+import {Block, ContainerFlag2} from "../meta/block.js";
 
 export class DoStatementContainer extends BaseContainer<NodeKind.DoStatement> implements BlockStatement {
     
-    public override readonly block: BlockContainer
+    public override readonly block: Block
     public readonly kind = NodeKind.DoStatement;
     
     constructor(
@@ -15,7 +15,7 @@ export class DoStatementContainer extends BaseContainer<NodeKind.DoStatement> im
         scope: Scope
     ) {
         super(scope);
-        this.block = Scope.createBody(this, node.body)
+        this.block = Scope.createBody(this, node.body, ContainerFlag2.BlockScope)
     }
     
     forEachChild(node: (node: Container) => void) {

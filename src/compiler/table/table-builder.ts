@@ -1,807 +1,461 @@
+import {Container, ExpressionContainer, NodeKind} from "../components/container-types.js";
+import {SymbolTable, Token, TypeGuide} from "./symbol-table.js";
+import {Program} from "../components/nodes/meta/program.js";
+import {ChunkContainer} from "../components/nodes/meta/chunk-container.js";
+import {Block} from "../components/nodes/meta/block.js";
+import {FunctionExpressionContainer} from "../components/nodes/expression/function-expression-container.js";
+import {ReturnStatementContainer} from "../components/nodes/statement/return-statement-container.js";
+import {IfStatementContainer} from "../components/nodes/statement/if-statement/if-statement-container.js";
+import {IfClauseContainer} from "../components/nodes/statement/if-statement/clause/if-clause-container.js";
+import {ElseifClauseContainer} from "../components/nodes/statement/if-statement/clause/elseif-clause-container.js";
+import {ElseClauseContainer} from "../components/nodes/statement/if-statement/clause/else-clause-container.js";
+import {WhileStatementContainer} from "../components/nodes/statement/while-statement-container.js";
+import {DoStatementContainer} from "../components/nodes/statement/do-statement-container.js";
+import {RepeatStatementContainer} from "../components/nodes/statement/repeat-statement-container.js";
+import {LocalStatementContainer} from "../components/nodes/statement/assign/local-statement-container.js";
+import {AssignmentStatementContainer} from "../components/nodes/statement/assign/assignment-statement-container.js";
+import {ForNumericStatementContainer} from "../components/nodes/statement/for-numeric-statement-container.js";
+import {ForGenericStatementContainer} from "../components/nodes/statement/for-generic-statement-container.js";
+import {StringLiteralContainer} from "../components/nodes/expression/literal/string-literal-container.js";
+import {NumericLiteralContainer} from "../components/nodes/expression/literal/numeric-literal-container.js";
+import {BooleanLiteralContainer} from "../components/nodes/expression/literal/boolean-literal-container.js";
+import {NilLiteralContainer} from "../components/nodes/expression/literal/nil-literal-container.js";
+import {VarargLiteralContainer} from "../components/nodes/expression/literal/vararg-literal-container.js";
 import {
     BinaryExpressionContainer
-} from "compiler/components/nodes/expression/binary-expression/binary-expression-container.js";
+} from "../components/nodes/expression/binary-expression/binary-expression-container.js";
 import {
     LogicalExpressionContainer
-} from "compiler/components/nodes/expression/binary-expression/logical-expression-container.js";
-import {
-    CallExpressionContainer
-} from "compiler/components/nodes/expression/call-expression/call-expression-container.js";
-import {
-    StringCallExpressionContainer
-} from "compiler/components/nodes/expression/call-expression/string-call-expression-container.js";
+} from "../components/nodes/expression/binary-expression/logical-expression-container.js";
+import {UnaryExpressionContainer} from "../components/nodes/expression/unary-expression-container.js";
+import {CallStatementContainer} from "../components/nodes/statement/call-statement-container.js";
+import {CallExpressionContainer} from "../components/nodes/expression/call-expression/call-expression-container.js";
 import {
     TableCallExpressionContainer
-} from "compiler/components/nodes/expression/call-expression/table-call-expression-container.js";
-import {FunctionExpressionContainer} from "compiler/components/nodes/expression/function-expression-container.js";
-import {IndexExpressionContainer} from "compiler/components/nodes/expression/index-expression-container.js";
-import {BooleanLiteralContainer} from "compiler/components/nodes/expression/literal/boolean-literal-container.js";
-import {IdentifierContainer} from "compiler/components/nodes/expression/literal/identifier-container.js";
-import {NilLiteralContainer} from "compiler/components/nodes/expression/literal/nil-literal-container.js";
-import {NumericLiteralContainer} from "compiler/components/nodes/expression/literal/numeric-literal-container.js";
-import {StringLiteralContainer} from "compiler/components/nodes/expression/literal/string-literal-container.js";
-import {VarargLiteralContainer} from "compiler/components/nodes/expression/literal/vararg-literal-container.js";
-import {MemberExpressionContainer} from "compiler/components/nodes/expression/member-expression-container.js";
+} from "../components/nodes/expression/call-expression/table-call-expression-container.js";
+import {
+    StringCallExpressionContainer
+} from "../components/nodes/expression/call-expression/string-call-expression-container.js";
+import {IdentifierContainer} from "../components/nodes/expression/literal/identifier-container.js";
+import {MemberExpressionContainer} from "../components/nodes/expression/member-expression-container.js";
+import {IndexExpressionContainer} from "../components/nodes/expression/index-expression-container.js";
 import {
     TableConstructorExpressionContainer
-} from "compiler/components/nodes/expression/table/table-constructor-expression-container.js";
-import {TableKeyContainer} from "compiler/components/nodes/expression/table/table-entry/table-key-container.js";
-import {
-    TableKeyStringContainer
-} from "compiler/components/nodes/expression/table/table-entry/table-key-string-container.js";
-import {TableValueContainer} from "compiler/components/nodes/expression/table/table-entry/table-value-container.js";
-import {UnaryExpressionContainer} from "compiler/components/nodes/expression/unary-expression-container.js";
-import {BlockContainer} from "compiler/components/nodes/meta/block-container.js";
-import {ChunkContainer} from "compiler/components/nodes/meta/chunk-container.js";
-import {SourceFileContainer} from "compiler/components/nodes/meta/source-file-container.js";
-import {
-    AssignmentStatementContainer
-} from "compiler/components/nodes/statement/assign/assignment-statement-container.js";
-import {LocalStatementContainer} from "compiler/components/nodes/statement/assign/local-statement-container.js";
-import {BreakStatementContainer} from "compiler/components/nodes/statement/break-statement-container.js";
-import {CallStatementContainer} from "compiler/components/nodes/statement/call-statement-container.js";
-import {DoStatementContainer} from "compiler/components/nodes/statement/do-statement-container.js";
-import {ForGenericStatementContainer} from "compiler/components/nodes/statement/for-generic-statement-container.js";
-import {ForNumericStatementContainer} from "compiler/components/nodes/statement/for-numeric-statement-container.js";
-import {GotoStatementContainer} from "compiler/components/nodes/statement/goto-statement-container.js";
-import {ElseClauseContainer} from "compiler/components/nodes/statement/if-statement/clause/else-clause-container.js";
-import {
-    ElseifClauseContainer
-} from "compiler/components/nodes/statement/if-statement/clause/elseif-clause-container.js";
-import {IfClauseContainer} from "compiler/components/nodes/statement/if-statement/clause/if-clause-container.js";
-import {IfStatementContainer} from "compiler/components/nodes/statement/if-statement/if-statement-container.js";
-import {LabelStatementContainer} from "compiler/components/nodes/statement/label-statement-container.js";
-import {RepeatStatementContainer} from "compiler/components/nodes/statement/repeat-statement-container.js";
-import {ReturnStatementContainer} from "compiler/components/nodes/statement/return-statement-container.js";
-import {WhileStatementContainer} from "compiler/components/nodes/statement/while-statement-container.js";
-import {CommentContainer} from "compiler/components/nodes/trivia/comment-trivia-container.js";
-import {BinaryExpressionOperator, Container, NodeKind, UnaryExpressionOperator} from "../components/container-types.js";
-import {
-    ContainerFlag,
-    isAssignNewValue,
-    isCallFlag,
-    isDeclarationFlag,
-    isLocalFlag,
-    isMemberFlag,
-    isParameterFlag,
-    isSemiFlag
-} from "../components/base-container.js";
-import {LuaTiError, LuaTiErrorHelper} from "../error/lua-ti-error.js";
-import {
-    addCallToVariable,
-    addMemberToVariable,
-    BubbleBreak,
-    Call,
-    FunctionDeclaration,
-    LSymbolTableKind,
-    ObjectMap,
-    SymbolFlag,
-    Variable
-} from "./symbol-table.js";
-import {createStringBuilder} from "../utility/string-builder.js";
-import {LuaTiErrorLevel} from "../error/lua-ti-error-level.js";
-import {LuaTiErrorCode} from "../error/lua-ti-error-code.js";
-import {AnnotationParser} from "../annotation/annotation-parser.js";
-import {ClassAnnotation, LuaBasicType, SignatureAnnotation} from "../annotation/annotation.js";
-import {ClassMemberType, ClassType, Type, TypeKind} from "../type/type.js";
-import {CompilerOptions} from "../compiler-options/compiler-options.js";
+} from "../components/nodes/expression/table/table-constructor-expression-container.js";
+import {TableKeyContainer} from "../components/nodes/expression/table/table-entry/table-key-container.js";
+import {TableKeyStringContainer} from "../components/nodes/expression/table/table-entry/table-key-string-container.js";
+import {TableValueContainer} from "../components/nodes/expression/table/table-entry/table-value-container.js";
+import {CommentContainer} from "../components/nodes/trivia/comment-trivia-container.js";
+import {LabelStatementContainer} from "../components/nodes/statement/label-statement-container.js";
+import {BreakStatementContainer} from "../components/nodes/statement/break-statement-container.js";
+import {GotoStatementContainer} from "../components/nodes/statement/goto-statement-container.js";
+import {VariableContainer} from "../components/nodes/expression/variable-container.js";
 
 export type TableVisitor = {
     [A in NodeKind]: (node: A extends Container['kind'] ? Extract<Container, {
         kind: A
-    }> : never, context: TableVisitorContext) => void
+    }> : never, context: SymbolTable, curse: (curse: VoidFunction) => void) => void
 }
 
-export class TableVisitorContext {
-    private _currentFile: string | undefined
-    private functionSignatureStack: FunctionDeclaration[] = []
-    
-    constructor() {
+export function leftMostExpression(node: ExpressionContainer): ExpressionContainer {
+    switch (node.kind) {
+        case NodeKind.NilLiteral:
+        case NodeKind.Identifier:
+        case NodeKind.StringLiteral:
+        case NodeKind.NumericLiteral:
+        case NodeKind.BooleanLiteral:
+        case NodeKind.VarargLiteral:
+            return node
+        case NodeKind.TableConstructorExpression:
+            return node
+        case NodeKind.BinaryExpression:
+            return leftMostExpression(node.left)
+        case NodeKind.LogicalExpression:
+            return leftMostExpression(node.left)
+        case NodeKind.UnaryExpression:
+            return leftMostExpression(node.argument)
+        case NodeKind.MemberExpression:
+            return leftMostExpression(node.base)
+        case NodeKind.IndexExpression:
+            return leftMostExpression(node.base)
+        case NodeKind.CallExpression:
+            return leftMostExpression(node.base)
+        case NodeKind.TableCallExpression:
+            return leftMostExpression(node.base)
+        case NodeKind.StringCallExpression:
+            return leftMostExpression(node.base)
+        case NodeKind.FunctionDeclaration:
+            return node.identifier ? leftMostExpression(node.identifier) : node
     }
-    
-    set currentFile(value: string | undefined) {
-        this._currentFile = value;
-    }
-    
-    startFunctionSignature(signature: FunctionDeclaration) {
-        this.functionSignatureStack.push(signature)
-    }
-    
-    getFunctionSignature() {
-        return this.functionSignatureStack[this.functionSignatureStack.length - 1]
-    }
-    
-    endFunctionSignature() {
-        this.functionSignatureStack.pop()
-    }
-    
-    
 }
 
-function flagToString(flag: ContainerFlag) {
-    const flags: [string, number][] = [
-        ['None', ContainerFlag.None],
-        ['Declaration', ContainerFlag.Declaration],
-        ['Global', ContainerFlag.Global],
-        ['Local', ContainerFlag.Local],
-        ['Member', ContainerFlag.Member],
-        ['Function', ContainerFlag.Function],
-        ['Parameter', ContainerFlag.Parameter],
-        ['Call', ContainerFlag.Call],
-        ['Argument', ContainerFlag.Argument],
-        ['Semi', ContainerFlag.Semi],
-        ['Indexed', ContainerFlag.Indexed],
-        ['AssignNewValue', ContainerFlag.AssignNewValue],
-        ['DeclareGlobal', ContainerFlag.DeclareGlobal],
-        ['DeclareLocal', ContainerFlag.DeclareLocal],
-        ['DeclareOrResolveGlobal', ContainerFlag.DeclareOrResolveGlobal],
-        ['DeclareOrResolveLocal', ContainerFlag.DeclareOrResolveLocal],
-    ]
-    
-    const out = createStringBuilder()
-    for (let [name, flagEntry] of flags) {
-        if ((flagEntry & flag) === flagEntry) {
-            out.println(name + ' ' + flagEntry.toString(2) + ' ' + flag.toString(2))
+function applyAssignment(variables: VariableContainer[], expression: ExpressionContainer) {
+    const instance = expression.symbol.properties.instance
+    if (instance) {
+        if (variables.length > 1) {
+            if (instance instanceof Array) {
+                for (let i = 0; i < variables.length; i++) {
+                    const value = instance[i]
+                    if (value instanceof Token) {
+                        variables[i].symbol = value
+                        // variables[i].symbol.properties.instance = value.properties.instance
+                    } else {
+                        variables[i].symbol = new Token()
+                        variables[i].symbol.properties.instance = value || null
+                    }
+                }
+            } else {
+                throw new Error()
+            }
+        } else {
+            if (instance instanceof Token) {
+                variables[0].symbol = instance
+                // variables[0].symbol.properties.instance = instance.properties.instance
+            } else {
+                variables[0].symbol = new Token()
+                variables[0].symbol.properties.instance = null
+            }
+        }
+    } else {
+        for (let variable of variables) {
+            variable.symbol = new Token()
+            variable.symbol.properties.instance = null
         }
     }
-    
-    return out.text
 }
 
-export function buildTable(sourceFile: SourceFileContainer) {
-    
-    let symbolCounter = 0
-    const annotationParser = new AnnotationParser()
-    let currentFileFlag: CompilerOptions['fileFlag']
-    
-    const createSymbol: (container?: Container, name?: string) => Variable = function (container?: Container, name?: string): Variable {
-        return {
-            id: symbolCounter++,
-            kind: LSymbolTableKind.Variable,
-            flag: SymbolFlag.None,
-            declarations: container ? [container] : [],
-            name: name,
-            indexedMember: [],
-            functionDeclaration: undefined,
-            offset: undefined,
-            type: undefined
-        }
-    }
-    
-    function declareClass(annotation: ClassAnnotation): ClassType {
-        return {
-            kind: TypeKind.Class,
-            name: annotation.name,
-            location: annotation.location,
-            member: annotation.fields.reduce<{ [key: string]: ClassMemberType }>((p, c) => {
-                p[c.name] = {
-                    kind: TypeKind.ClassMember,
-                    location: c.location,
-                    name: c.name,
-                    isOptional: c.isOptional,
-                    type: c.type
-                }
-                return p
-            }, {})
-        }
-    }
-    
-    const tableVisitor: TableVisitor = {
-        [NodeKind.SourceFile]: function (node: SourceFileContainer, context: TableVisitorContext): void {
-            for (let chunk of node.chunks) {
-                visit(chunk, context)
-            }
-        },
-        [NodeKind.Chunk]: function (node: ChunkContainer, context: TableVisitorContext): void {
-            context.currentFile = node.sourceFile.path
-            currentFileFlag = node.compilerOptions.fileFlag
-            visit(node.block, context)
-        },
-        [NodeKind.Block]: function (node: BlockContainer, context: TableVisitorContext): void {
-            for (let statement of node.statements) {
-                visit(statement, context)
-            }
-        },
-        [NodeKind.FunctionDeclaration]: function (node: FunctionExpressionContainer, context: TableVisitorContext): void {
-            node.signatureAnnotation = annotationParser.parse(node.comments) as SignatureAnnotation
-            if (node.signatureAnnotation) {
-                node.type = {
-                    kind: TypeKind.Function,
-                    returns: node.signatureAnnotation.returns.type,
-                    parameter: node.signatureAnnotation.parameter.map(parameter => {
-                        return {
-                            kind: TypeKind.Parameter,
-                            name: parameter.name,
-                            isOptional: parameter.isOptional,
-                            type: parameter.type,
-                        }
-                    })
-                }
-            }
-            node.block.table.bubbleBreak = BubbleBreak.FunctionBubble
-            for (let i = 0; i < node.parameter.length; i++) {
-                let parameterElement = node.parameter[i]
-                if (node.signatureAnnotation) {
-                    parameterElement.parameterAnnotation = node.signatureAnnotation.parameter[i]
-                }
-                parameterElement.flag = ContainerFlag.Parameter
-                node.setTableOverwrite(node.block.getLocalTable())
-                visit(parameterElement, context)
-                node.clearTableOverwrite()
-            }
-            if (node.identifier) {
-                if (node.isLocal) {
-                    node.identifier.flag = ContainerFlag.Function | ContainerFlag.Local | ContainerFlag.Declaration
-                } else {
-                    node.identifier.flag = ContainerFlag.Function | ContainerFlag.Global | ContainerFlag.Declaration
-                }
-                visit(node.identifier, context)
-                node.symbol = node.identifier.symbol
-                if (node.symbol.type && node.symbol.type.kind === TypeKind.ClassMember) {
-                    // set type from signature annotation to type entry of symbol type.
-                    node.symbol.type.type = node.type
-                }
-            } else {
-                node.symbol = createSymbol(node)
-            }
-            node.symbol.functionDeclaration = {
-                functionBodyTable: node.block.getLocalTable(),
-                parameter: node.parameter.map((x) => ({
-                    symbol: x.symbol
-                })),
-                declaration: node,
-                returns: []
-            }
-            node.symbol.flag = SymbolFlag.Function
-            context.startFunctionSignature(node.symbol.functionDeclaration)
-            visit(node.block, context)
-            context.endFunctionSignature()
-        },
-        [NodeKind.ReturnStatement]: function (node: ReturnStatementContainer, context: TableVisitorContext): void {
-            for (let argument of node.arguments) {
-                visit(argument, context)
-            }
-            try {
-                context.getFunctionSignature().returns.push({
-                    declaration: node,
-                    arguments: node.arguments.map(x => x.symbol)
-                })
-            } catch (e) {
-                console.warn('escape global body')
-            }
-        },
-        [NodeKind.IfStatement]: function (node: IfStatementContainer, context: TableVisitorContext): void {
-            for (let clause of node.clauses) {
-                visit(clause, context)
-            }
-        },
-        [NodeKind.IfClause]: function (node: IfClauseContainer, context: TableVisitorContext): void {
-            visit(node.condition, context)
-            visit(node.block, context)
-        },
-        [NodeKind.ElseifClause]: function (node: ElseifClauseContainer, context: TableVisitorContext): void {
-            visit(node.condition, context)
-            visit(node.block, context)
-        },
-        [NodeKind.ElseClause]: function (node: ElseClauseContainer, context: TableVisitorContext): void {
-            visit(node.block, context)
-        },
-        [NodeKind.WhileStatement]: function (node: WhileStatementContainer, context: TableVisitorContext): void {
-            visit(node.condition, context)
-            visit(node.block, context)
-        },
-        [NodeKind.DoStatement]: function (node: DoStatementContainer, context: TableVisitorContext): void {
-            visit(node.block, context)
-        },
-        [NodeKind.RepeatStatement]: function (node: RepeatStatementContainer, context: TableVisitorContext): void {
-            visit(node.condition, context)
-            visit(node.block, context)
-        },
-        [NodeKind.LocalStatement]: function (node: LocalStatementContainer, context: TableVisitorContext): void {
-            for (let i = 0; i < node.variables.length; i++) {
-                let variable = node.variables[i]
-                let expression = node.init[i]
-                variable.flag = ContainerFlag.DeclareLocal
-                visit(variable, context)
-                if (expression) {
-                    visit(expression, context)
-                }
-            }
-        },
-        [NodeKind.AssignmentStatement]: function (node: AssignmentStatementContainer, context: TableVisitorContext): void {
-            const annotation = annotationParser.parse(node.comments) as ClassAnnotation
-            for (let i = 0; i < node.variables.length; i++) {
-                let variable = node.variables[i]
-                if (annotation && i === 0) {
-                    variable.type = declareClass(annotation)
-                }
-                variable.flag = ContainerFlag.DeclareGlobal | ContainerFlag.AssignNewValue
-                visit(variable, context)
-                let expression = node.init[i]
-                if (expression) {
-                    visit(expression, context)
-                }
-            }
-        },
-        [NodeKind.ForNumericStatement]: function (node: ForNumericStatementContainer, context: TableVisitorContext): void {
-            node.start.flag = ContainerFlag.Semi
-            node.end.flag = ContainerFlag.Semi
-            node.setTableOverwrite(node.block.getLocalTable())
-            visit(node.start, context)
-            visit(node.end, context)
-            if (node.step) {
-                node.step.flag = ContainerFlag.Semi
-                visit(node.step, context)
-            }
-            node.clearTableOverwrite()
-            visit(node.block, context)
-        },
-        [NodeKind.ForGenericStatement]: function (node: ForGenericStatementContainer, context: TableVisitorContext): void {
-            for (let variable of node.variables) {
-                variable.flag = ContainerFlag.Semi
-                node.setTableOverwrite(node.block.getLocalTable())
-                visit(variable, context)
-                node.clearTableOverwrite()
-                const entry = node.block.table.lookup(variable.name, BubbleBreak.LocalBubble)
-                if (entry) {
-                    console.log('redeclaration in for generic statement')
-                }
-                node.block.table.getSemi()[variable.name] = variable.symbol
-            }
-            visit(node.block, context)
-        },
-        [NodeKind.StringLiteral]: function (node: StringLiteralContainer): void {
-            node.symbol = createSymbol(node)
-            node.type = {
-                kind: TypeKind.StringLiteral,
-                value: node.value
-            }
-        },
-        [NodeKind.NumericLiteral]: function (node: NumericLiteralContainer): void {
-            node.symbol = createSymbol(node)
-            node.symbol.flag = SymbolFlag.NumberLiteral
-            node.type = {
-                kind: TypeKind.NumberLiteral,
-                value: node.value
-            }
-        },
-        [NodeKind.BooleanLiteral]: function (node: BooleanLiteralContainer): void {
-            node.symbol = createSymbol(node)
-            node.symbol.flag = SymbolFlag.BoolLiteral
-            node.type = {
-                kind: TypeKind.BooleanLiteral,
-                value: node.value
-            }
-        },
-        [NodeKind.NilLiteral]: function (node: NilLiteralContainer): void {
-            node.symbol = createSymbol(node)
-            node.symbol.flag = SymbolFlag.NilLiteral
-            node.type = {
-                kind: TypeKind.Null
-            }
-        },
-        [NodeKind.VarargLiteral]: function (node: VarargLiteralContainer): void {
-            if (isParameterFlag(node.flag)) {
-                node.table.getParameter()['...'] = createSymbol(node, '...')
-            } else {
-                const entry = node.table.lookup('...', BubbleBreak.FunctionBubble)
-                if (entry) {
-                    node.symbol = entry
-                    node.symbol.flag = SymbolFlag.VarargLiteral
-                } else {
-                    console.error('... undefined')
-                    console.log(node.table.lookup('...'))
-                }
-            }
-        },
-        [NodeKind.BinaryExpression]: function (node: BinaryExpressionContainer, context: TableVisitorContext): void {
-            node.symbol = createSymbol(node)
-            switch (node.operator) {
-                case BinaryExpressionOperator.add:
-                    node.type = LuaBasicType.Number
-                    break;
-                case BinaryExpressionOperator.sub:
-                    node.type = LuaBasicType.Number
-                    break;
-                case BinaryExpressionOperator.mul:
-                    node.type = LuaBasicType.Number
-                    break;
-                case BinaryExpressionOperator.mod:
-                    node.type = LuaBasicType.Number
-                    break;
-                case BinaryExpressionOperator.exp:
-                    node.type = LuaBasicType.Number
-                    break;
-                case BinaryExpressionOperator.div:
-                    node.type = LuaBasicType.Number
-                    break;
-                case BinaryExpressionOperator.divFloor:
-                    node.type = LuaBasicType.Number
-                    break;
-                case BinaryExpressionOperator.and:
-                    node.type = LuaBasicType.Number
-                    break;
-                case BinaryExpressionOperator.or:
-                    node.type = LuaBasicType.Number
-                    break;
-                case BinaryExpressionOperator.xor:
-                    node.type = LuaBasicType.Number
-                    break;
-                case BinaryExpressionOperator.shiftLeft:
-                    node.type = LuaBasicType.Number
-                    break;
-                case BinaryExpressionOperator.shiftRight:
-                    node.type = LuaBasicType.Number
-                    break;
-                case BinaryExpressionOperator.concat:
-                    node.type = LuaBasicType.String
-                    break;
-                case BinaryExpressionOperator.compare_ne:
-                    node.type = LuaBasicType.Boolean
-                    break;
-                case BinaryExpressionOperator.compare_eq:
-                    node.type = LuaBasicType.Boolean
-                    break;
-                case BinaryExpressionOperator.compare_lt:
-                    node.type = LuaBasicType.Boolean
-                    break;
-                case BinaryExpressionOperator.compare_le:
-                    node.type = LuaBasicType.Boolean
-                    break;
-                case BinaryExpressionOperator.compare_gt:
-                    node.type = LuaBasicType.Boolean
-                    break;
-                case BinaryExpressionOperator.compare_ge:
-                    node.type = LuaBasicType.Boolean
-                    break;
-            }
-            visit(node.left, context)
-            visit(node.right, context)
-        },
-        [NodeKind.LogicalExpression]: function (node: LogicalExpressionContainer, context: TableVisitorContext): void {
-            node.symbol = createSymbol(node)
-            switch (node.operator) {
-                case "or":
-                    node.symbol.flag = SymbolFlag.LogicalOr
-                    visit(node.left, context)
-                    visit(node.right, context)
-                    node.type = {
-                        kind: TypeKind.Conditional,
-                        left: node.left.type,
-                        right: node.right.type
-                    }
-                    break
-                case "and":
-                    node.symbol.flag = SymbolFlag.LogicalAnd
-                    visit(node.left, context)
-                    visit(node.right, context)
-                    node.type = {
-                        kind: TypeKind.Conditional,
-                        left: node.right.type,
-                        right: node.left.type
-                    }
-                    break
-            }
-        },
-        [NodeKind.UnaryExpression]: function (node: UnaryExpressionContainer, context: TableVisitorContext): void {
-            node.symbol = createSymbol(node)
-            switch (node.operator) {
-                case UnaryExpressionOperator.Not:
-                    node.type = LuaBasicType.Boolean
-                    break;
-                case UnaryExpressionOperator.Length:
-                    node.type = LuaBasicType.Number
-                    break;
-                case UnaryExpressionOperator.BitNegate:
-                    node.type = LuaBasicType.Number
-                    break;
-                case UnaryExpressionOperator.ArithmeticNegate:
-                    node.type = LuaBasicType.Number
-                    break;
-            }
-            visit(node.argument, context)
-        },
-        [NodeKind.CallStatement]: function (node: CallStatementContainer, context: TableVisitorContext): void {
-            visit(node.expression, context)
-        },
-        [NodeKind.CallExpression]: function (node: CallExpressionContainer, context: TableVisitorContext): void {
-            for (let i = 0; i < node.arguments.length; i++) {
-                const argument = node.arguments[i]
-                argument.flag = ContainerFlag.Argument
-                visit(argument, context)
-            }
-            if (node.base.kind === NodeKind.Identifier && node.base.name === 'type') {
-                node.symbol = createSymbol(node)
-                node.symbol.flag = SymbolFlag.TypeOf
-            } else {
-                node.base.flag = ContainerFlag.Call
-                visit(node.base, context)
-                const entry = node.base.symbol
-                const call: Call = {
-                    returns: createSymbol(node),
-                    declaration: node,
-                    arguments: node.arguments.map(argument => ({
-                        symbol: argument.symbol,
-                        declaration: argument
-                    }))
-                }
-                addCallToVariable(entry, call)
-                node.symbol = call.returns
-            }
-        },
-        [NodeKind.TableCallExpression]: function (node: TableCallExpressionContainer, context: TableVisitorContext): void {
-            node.arguments.flag = ContainerFlag.Argument
-            visit(node.arguments, context)
-            if (node.base.kind === NodeKind.Identifier && node.base.name === 'type') {
-                node.symbol = createSymbol(node)
-                node.symbol.flag = SymbolFlag.TypeOf
-            } else {
-                node.base.flag = ContainerFlag.Call
-                visit(node.base, context)
-                const entry = node.base.symbol
-                const call: Call = {
-                    returns: createSymbol(node),
-                    declaration: node,
-                    arguments: [node.arguments].map(argument => ({
-                        symbol: argument.symbol,
-                        declaration: argument
-                    }))
-                }
-                addCallToVariable(entry, call)
-                node.symbol = call.returns
-            }
-        },
-        [NodeKind.StringCallExpression]: function (node: StringCallExpressionContainer, context: TableVisitorContext): void {
-            node.argument.flag = ContainerFlag.Argument
-            visit(node.argument, context)
-            if (node.base.kind === NodeKind.Identifier && node.base.name === 'type') {
-                node.symbol = createSymbol(node)
-                node.symbol.flag = SymbolFlag.TypeOf
-            } else {
-                node.base.flag = ContainerFlag.Call
-                visit(node.base, context)
-                const entry = node.base.symbol
-                const call: Call = {
-                    returns: createSymbol(node),
-                    declaration: node,
-                    arguments: [node.argument].map(argument => ({
-                        symbol: argument.symbol,
-                        declaration: argument
-                    }))
-                }
-                addCallToVariable(entry, call)
-                node.symbol = call.returns
-            }
-        },
-        /**
-         *
-         * This is the main reason why a custom parser would be good.
-         * by wrapping Identifier or Expressions in List with flags.
-         * e.g.:
-         *    LocalDeclaration
-         *          ::= LocalFunctionDeclaration // <- on bubble, flag is known by LocalDeclaration as parent
-         *    LocalFunctionDeclaration
-         *          ::= local FunctionDeclaration
-         *    GlobalFunctionDeclaration
-         *          ::= FunctionDeclaration
-         *    FunctionDeclaration
-         *          ::= function Variable FunctionPrototype end
-         *    FunctionExpression
-         *          ::= function FunctionPrototype
-         *    FunctionPrototype
-         *          ::= ( ParameterDeclarationList ) Block
-         *    ParameterDeclarationList
-         *          ::= ExpressionList // <- on bubble, flag is known by ParameterDeclarationList as parent
-         *
-         * @param node
-         * @param context
-         */
-        [NodeKind.Identifier]: function (node: IdentifierContainer): void {
-            const entryList = node.table.lookupTrack(node.name)
-            if (entryList) {
-                const [entry, memberKind, bubbles] = entryList
-                if (isDeclarationFlag(node.flag)) {
-                    if (isParameterFlag(node.flag)) {
-                        throw LuaTiErrorHelper.duplicateDeclarationAsParameter(node, entry, memberKind, bubbles)
-                    } else if (isSemiFlag(node.flag)) {
-                        throw LuaTiErrorHelper.duplicateDeclarationAsForLoopVariable(node, entry, memberKind, bubbles)
-                    } else if (isLocalFlag(node.flag)) {
-                        throw LuaTiErrorHelper.duplicateDeclarationAsLocalVariable(node, entry, memberKind, bubbles)
-                    } else if (isAssignNewValue(node.flag)) {
-                        throw new LuaTiError(LuaTiErrorLevel.Internal, LuaTiErrorCode.Unspecified, LuaTiErrorHelper.location(node))
-                    } else if (isMemberFlag(node.flag)) {
-                        node.symbol = entry
-                    } else {
-                        console.log(flagToString(node.flag))
-                        throw new LuaTiError(LuaTiErrorLevel.Internal, LuaTiErrorCode.Unspecified, LuaTiErrorHelper.location(node))
-                    }
-                } else {
-                    if (isParameterFlag(node.flag)) {
-                        if (memberKind !== 'parameter') {
-                            throw LuaTiErrorHelper.memberKindMismatch(node, entry, memberKind, 'parameter', bubbles)
-                        }
-                    } else if (isSemiFlag(node.flag)) {
-                        if (memberKind !== 'semi') {
-                            throw LuaTiErrorHelper.memberKindMismatch(node, entry, memberKind, 'semi', bubbles)
-                        }
-                    } else if (isLocalFlag(node.flag)) {
-                        if (memberKind !== 'member') {
-                            throw LuaTiErrorHelper.memberKindMismatch(node, entry, memberKind, 'member', bubbles)
-                        }
-                    } else if (isAssignNewValue(node.flag)) {
-                        throw new LuaTiError(LuaTiErrorLevel.Internal, LuaTiErrorCode.Unspecified, LuaTiErrorHelper.location(node))
-                    } else {
-                        node.symbol = entry
-                    }
-                }
-            } else {
-                if (isDeclarationFlag(node.flag)) {
-                    if (isParameterFlag(node.flag)) {
-                        throw new LuaTiError(LuaTiErrorLevel.Internal, LuaTiErrorCode.Unspecified, LuaTiErrorHelper.location(node))
-                    } else if (isSemiFlag(node.flag)) {
-                        throw new LuaTiError(LuaTiErrorLevel.Internal, LuaTiErrorCode.Unspecified, LuaTiErrorHelper.location(node))
-                    } else if (isLocalFlag(node.flag)) {
-                        // Local Declaration e.g.: local Duel = {}
-                        node.symbol = createSymbol(node, node.name)
-                        node.table.enter(node.name, node.symbol, 'member', node.compilerOptions)
-                    } else {
-                        // Global Declaration e.g.: Duel = {}
-                        node.symbol = createSymbol(node, node.name)
-                        // down pass root. explicitly defined type with node.type
-                        if (node.type) {
-                            // up pass via node.symbol.type
-                            node.symbol.type = node.type
-                        }
-                        node.table.global.enter(node.name, node.symbol, 'member', node.compilerOptions)
-                    }
-                } else {
-                    if (isParameterFlag(node.flag)) {
-                        // Parameter Declaration e.g.: function test(a, b, c)
-                        node.symbol = createSymbol(node, node.name)
-                        node.table.enter(node.name, node.symbol, 'parameter', node.compilerOptions)
-                        if (node.parameterAnnotation) {
-                            // e.g.:
-                            // ---@name test
-                            // ---@param a number
-                            // ---@param b string
-                            // function test(b, a) end -- throws Error because 'b' !== 'a'
-                            // function test(a, c) end -- throws Error because 'b' !== 'c'
-                            if (node.parameterAnnotation.name !== node.name) {
-                                console.error(node.parameterAnnotation.name, node.name)
-                                throw LuaTiErrorHelper.AnnotationError(`Parameter Annotation name mismatch, annotation-name="${node.parameterAnnotation.name}" node-name="${node.name}"`, node)
-                            }
-                            // set node.type 'down pass' as explicit declaration from annotation
-                            node.type = {
-                                kind: TypeKind.Parameter,
-                                name: node.name,
-                                isOptional: node.parameterAnnotation.isOptional,
-                                type: node.parameterAnnotation.type
-                            }
-                            // set node.symbol.type 'up pass' as declaration of node.type
-                            node.symbol.type = node.type
-                        }
-                    } else if (isSemiFlag(node.flag)) {
-                        node.symbol = createSymbol(node, node.name)
-                        node.table.enter(node.name, node.symbol, 'semi', node.compilerOptions)
-                    } else if (isLocalFlag(node.flag)) {
-                        throw new LuaTiError(LuaTiErrorLevel.Internal, LuaTiErrorCode.Unspecified, LuaTiErrorHelper.location(node))
-                    } else if (isAssignNewValue(node.flag)) {
-                        throw new LuaTiError(LuaTiErrorLevel.Internal, LuaTiErrorCode.Unspecified, LuaTiErrorHelper.location(node))
-                    } else if (isCallFlag(node.flag)) {
-                        throw LuaTiErrorHelper.CallUndefinedSymbol(node)
-                    } else {
-                        console.log(flagToString(node.flag))
-                        throw new LuaTiError(LuaTiErrorLevel.Internal, LuaTiErrorCode.Unspecified, LuaTiErrorHelper.location(node))
-                    }
-                }
-            }
-        },
-        [NodeKind.MemberExpression]: function (node: MemberExpressionContainer, context: TableVisitorContext): void {
-            node.base.flag = node.flag | ContainerFlag.Member
-            visit(node.base, context)
-            let targetType: Type
-            if (node.base.symbol.type) {
-                if (node.base.symbol.type.kind === TypeKind.Class) {
-                    if (currentFileFlag === 'declarations') {
-                        if (node.base.symbol.type[node.identifier.name]) {
-                            throw LuaTiErrorHelper.AnnotationError()
-                        } else {
-                            const memberType: ClassMemberType = {
-                                kind: TypeKind.ClassMember,
-                                name: node.identifier.name,
-                                type: undefined,
-                                isOptional: false
-                            }
-                            targetType = memberType
-                            node.base.symbol.type.member[node.identifier.name] = memberType
-                        }
-                    } else {
-                        if (node.base.symbol.type.member[node.identifier.name]) {
-                            targetType = node.base.symbol.type.member[node.identifier.name]
-                        } else {
-                            throw LuaTiErrorHelper.PropertyXDoesNotExistOnTypeY(node.identifier, node.identifier.name, node.base.symbol.type)
-                        }
-                    }
-                }
-            }
-            if (!node.base.symbol.member) {
-                node.base.symbol.member = {}
-            }
-            if (!node.base.symbol.member[node.identifier.name]) {
-                node.base.symbol.member[node.identifier.name] = createSymbol(node, node.identifier.name)
-            }
-            node.symbol = node.base.symbol.member[node.identifier.name]
-            node.symbol.type = targetType!
-        },
-        [NodeKind.IndexExpression]: function (node: IndexExpressionContainer, context: TableVisitorContext): void {
-            node.base.flag = node.flag | ContainerFlag.Member
-            visit(node.base, context)
-            const entry = node.base.symbol
-            visit(node.index, context)
-            const symbol = createSymbol(node)
-            entry.indexedMember.push({
-                key: node.index.symbol,
-                value: symbol
+const tableVisitor: TableVisitor = {
+    [NodeKind.Program]: function (node: Program, table: SymbolTable, curse): void {
+        visit(node.source, table, curse)
+    },
+    [NodeKind.Chunk]: function (node: ChunkContainer, table: SymbolTable, curse): void {
+        visit(node.block, table, curse)
+    },
+    [NodeKind.Block]: function (node: Block, table: SymbolTable, curse): void {
+        for (let statement of node.statements) {
+            curse(() => {
+                visit(statement, node.symbols, curse)
             })
-            node.symbol = symbol
-            node.symbol.flag = SymbolFlag.Indexed
-        },
-        [NodeKind.TableConstructorExpression]: function (node: TableConstructorExpressionContainer, context: TableVisitorContext): void {
-            const entry = createSymbol(node)
-            entry.flag = SymbolFlag.Table
-            for (let i = 0; i < node.fields.length; i++) {
-                let field = node.fields[i];
-                field.symbol = entry
-                visit(field, context)
-            }
-            node.symbol = entry
-        },
-        [NodeKind.TableKey]: function (node: TableKeyContainer, context: TableVisitorContext): void {
-            visit(node.key, context)
-            visit(node.value, context)
-            if (node.key.__immutable) {
-                const stack: any[] = [0]
-                addMemberToVariable(stack.pop() + '', node.symbol!, node.value.symbol!)
-            }
-        },
-        [NodeKind.TableKeyString]: function (node: TableKeyStringContainer, context: TableVisitorContext): void {
-            visit(node.key, context)
-            visit(node.value, context)
-            if (node.key.__immutable) {
-                const stack: any[] = [0]
-                addMemberToVariable(stack.pop() + '', node.symbol!, node.value.symbol!)
-            }
-        },
-        [NodeKind.TableValue]: function (node: TableValueContainer, context: TableVisitorContext): void {
-            visit(node.value, context)
-            addMemberToVariable(node.index + '', node.symbol!, node.value.symbol!)
-        },
-        [NodeKind.Comment]: function (node: CommentContainer): void {
-        },
-        [NodeKind.LabelStatement]: function (node: LabelStatementContainer): void {
-        },
-        [NodeKind.BreakStatement]: function (node: BreakStatementContainer): void {
-        },
-        [NodeKind.GotoStatement]: function (node: GotoStatementContainer): void {
         }
-    }
-    
-    visit(sourceFile, new TableVisitorContext())
-    
-    function visit(node: Container, context: TableVisitorContext) {
-        try {
-            tableVisitor[node.kind](node as never, context)
-        } catch (e) {
-            if (e instanceof LuaTiError) {
-                throw e
+    },
+    [NodeKind.FunctionDeclaration]: function (node: FunctionExpressionContainer, table: SymbolTable, curse): void {
+        if (node.identifier) {
+            if (node.isLocal) {
+                const leftMost = leftMostExpression(node.identifier)
+                if (leftMost && leftMost.kind === NodeKind.Identifier) {
+                    if (!table.has(leftMost.name)) {
+                        table.enter(leftMost.name, new Token())
+                    }
+                } else {
+                    throw new Error()
+                }
+                visit(node.identifier, table, curse)
             } else {
-                throw e
+                visit(node.identifier, table, curse)
+            }
+            const typeGuide = node.identifier.symbol.properties.typeGuide
+            if (typeGuide) {
+                continueTypeGuide(typeGuide)
+            } else {
+                node.symbol = node.identifier.symbol
+                node.symbol.declarations.push(node)
+                node.visitLater = () => {
+                    if(node.identifier!.symbol.properties.typeGuide){
+                        continueTypeGuide(node.identifier!.symbol.properties.typeGuide!)
+                        continueVisit()
+                    } else{
+                        console.error('continue visit without type guide')
+                    }
+                }
+                return
+            }
+        } else {
+            throw new Error("Not implemented. Try to declare the function, otherwise it cannot be checked.")
+        }
+        continueVisit()
+        
+        function continueTypeGuide(typeGuide: TypeGuide[]) {
+            for (let typeGuideElement of typeGuide) {
+                if (!(typeGuideElement instanceof Array)) {
+                    if (typeGuideElement.type === 'function') {
+                        typeGuideElement.parameter(...node.parameter)
+                        console.log(node.identifier!.text)
+                    }
+                }
             }
         }
+        
+        function continueVisit() {
+            for (let i = 0; i < node.parameter.length; i++) {
+                let parameter = node.parameter[i];
+                switch (parameter.kind) {
+                    case NodeKind.VarargLiteral:
+                        break;
+                    case NodeKind.Identifier:
+                        if (!parameter.hasSymbol) {
+                            parameter.symbol = node.functionBody.symbols.enter(parameter.name, new Token(parameter))
+                        } else {
+                            node.functionBody.symbols.enter(parameter.name, parameter.symbol)
+                        }
+                        break;
+                }
+            }
+            visit(node.block, table, curse)
+        }
+    },
+    [NodeKind.ReturnStatement]: function (node: ReturnStatementContainer, table: SymbolTable, curse): void {
+        for (let i = 0; i < node.arguments.length; i++) {
+            let argument = node.arguments[i];
+            visit(argument, table, curse)
+        }
+    },
+    [NodeKind.IfStatement]: function (node: IfStatementContainer, table: SymbolTable, curse): void {
+        for (let clause of node.clauses) {
+            visit(clause, table, curse)
+        }
+    },
+    [NodeKind.IfClause]: function (node: IfClauseContainer, table: SymbolTable, curse): void {
+        visit(node.condition, table, curse)
+        visit(node.block, table, curse)
+    },
+    [NodeKind.ElseifClause]: function (node: ElseifClauseContainer, table: SymbolTable, curse): void {
+        visit(node.condition, table, curse)
+        visit(node.block, table, curse)
+    },
+    [NodeKind.ElseClause]: function (node: ElseClauseContainer, table: SymbolTable, curse): void {
+        visit(node.block, table, curse)
+    },
+    [NodeKind.WhileStatement]: function (node: WhileStatementContainer, table: SymbolTable, curse): void {
+        visit(node.condition, table, curse)
+        visit(node.block, table, curse)
+    },
+    [NodeKind.DoStatement]: function (node: DoStatementContainer, table: SymbolTable, curse): void {
+        visit(node.block, table, curse)
+    },
+    [NodeKind.RepeatStatement]: function (node: RepeatStatementContainer, table: SymbolTable, curse): void {
+        visit(node.condition, table, curse)
+        visit(node.block, table, curse)
+    },
+    [NodeKind.LocalStatement]: function (node: LocalStatementContainer, table: SymbolTable, curse): void {
+        for (let i = 0; i < node.init.length; i++) {
+            let init = node.init[i];
+            visit(init, table, curse)
+        }
+        for (let [, variables, expression] of table.getAssignmentsByContainerDeep(node)) {
+            applyAssignment(variables, expression)
+        }
+        for (let i = 0; i < node.variables.length; i++) {
+            let variable = node.variables[i]
+            variable.symbol.declarations.push(variable)
+            table.lookup(variable.name) || table.enter(variable.name, variable.symbol)
+        }
+    },
+    [NodeKind.AssignmentStatement]: function (node: AssignmentStatementContainer, table: SymbolTable, curse): void {
+        for (let i = 0; i < node.init.length; i++) {
+            let init = node.init[i];
+            visit(init, table, curse)
+        }
+        for (let [, variables, expression] of table.getAssignmentsByContainerDeep(node)) {
+            applyAssignment(variables, expression)
+        }
+        for (let i = 0; i < node.variables.length; i++) {
+            let variable = node.variables[i];
+            switch (variable.kind) {
+                case NodeKind.Identifier:
+                    table.lookup(variable.name) || table.global.enter(variable.name, new Token(variable))
+                    break;
+                case NodeKind.IndexExpression:
+                    if (!variable.base.hasSymbol) {
+                        visit(variable.base, table, curse)
+                        visit(variable.index, table, curse)
+                    }
+                    break;
+                case NodeKind.MemberExpression:
+                    visit(variable.base, table, curse)
+                    variable.base.symbol.lookup(variable.identifier.name)
+                    || variable.base.symbol.enter(variable.identifier.name, new Token(variable.identifier))
+                    break;
+            }
+            variable.symbol.declarations.push(variable)
+        }
+    },
+    [NodeKind.ForNumericStatement]: function (node: ForNumericStatementContainer, table: SymbolTable, curse): void {
+        throw new Error("Not implemented.")
+    },
+    [NodeKind.ForGenericStatement]: function (node: ForGenericStatementContainer, table: SymbolTable, curse): void {
+        throw new Error("Not implemented.")
+    },
+    [NodeKind.StringLiteral]: function (node: StringLiteralContainer, table: SymbolTable, curse): void {
+        node.symbol = new Token(node)
+        node.symbol.properties.instance = node.value
+    },
+    [NodeKind.NumericLiteral]: function (node: NumericLiteralContainer, table: SymbolTable, curse): void {
+        node.symbol = new Token(node)
+        node.symbol.properties.instance = node.value
+    },
+    [NodeKind.BooleanLiteral]: function (node: BooleanLiteralContainer, table: SymbolTable, curse): void {
+        node.symbol = new Token(node)
+        node.symbol.properties.instance = node.value
+    },
+    [NodeKind.NilLiteral]: function (node: NilLiteralContainer, table: SymbolTable, curse): void {
+        node.symbol = new Token(node)
+        node.symbol.properties.instance = null
+    },
+    [NodeKind.VarargLiteral]: function (node: VarargLiteralContainer, table: SymbolTable, curse): void {
+        node.symbol = new Token(node)
+    },
+    [NodeKind.BinaryExpression]: function (node: BinaryExpressionContainer, table: SymbolTable, curse): void {
+        node.symbol = new Token(node)
+        visit(node.left, table, curse)
+        visit(node.right, table, curse)
+    },
+    [NodeKind.LogicalExpression]: function (node: LogicalExpressionContainer, table: SymbolTable, curse): void {
+        node.symbol = new Token(node)
+        switch (node.operator) {
+            case "or":
+                visit(node.left, table, curse)
+                visit(node.right, table, curse)
+                break
+            case "and":
+                visit(node.left, table, curse)
+                visit(node.right, table, curse)
+                break
+        }
+    },
+    [NodeKind.UnaryExpression]: function (node: UnaryExpressionContainer, table: SymbolTable, curse): void {
+        node.symbol = new Token(node)
+        visit(node.argument, table, curse)
+    },
+    [NodeKind.CallStatement]: function (node: CallStatementContainer, table: SymbolTable, curse): void {
+        visit(node.expression, table, curse)
+    },
+    [NodeKind.CallExpression]: function (node: CallExpressionContainer, table: SymbolTable, curse): void {
+        for (let i = 0; i < node.arguments.length; i++) {
+            let argument = node.arguments[i];
+            visit(argument, table, curse)
+        }
+        visit(node.base, table, curse)
+        if (node.base.hasSymbol) {
+            const _function = node.base.symbol.properties.instance
+            if (_function && typeof _function === 'function') {
+                const result = _function(...node.arguments.map(x => x.symbol))
+                node.symbol = new Token(node)
+                node.symbol.properties.instance = result
+            } else {
+                console.error(node.base.text, 'no call')
+                throw new Error()
+            }
+        }
+    },
+    [NodeKind.TableCallExpression]: function (node: TableCallExpressionContainer, table: SymbolTable, curse): void {
+        visit(node.base, table, curse)
+        throw new Error('table call expressions not supported')
+    },
+    [NodeKind.StringCallExpression]: function (node: StringCallExpressionContainer, table: SymbolTable, curse): void {
+        visit(node.base, table, curse)
+        throw new Error('string call expressions not supported')
+    },
+    [NodeKind.Identifier]: function (node: IdentifierContainer, table: SymbolTable, curse): void {
+        if (!node.hasSymbol) {
+            node.symbol = table.lookup(node.name) || table.global.enter(node.name, new Token(node))
+        }
+    },
+    [NodeKind.MemberExpression]: function (node: MemberExpressionContainer, table: SymbolTable, curse): void {
+        visit(node.base, table, curse)
+        switch (node.indexer) {
+            case ".":
+                node.identifier.symbol = node.base.symbol.lookup(node.identifier.name) || node.base.symbol.enter(node.identifier.name, new Token(node.identifier))
+                node.symbol = node.identifier.symbol
+                break
+            case ":":
+                if (node.base.symbol.properties.type) {
+                    const type = node.base.symbol.properties.type
+                    const tableReference = table.lookup(type)
+                    if (tableReference) {
+                        const targetFunctionEntry = tableReference?.lookup(node.identifier.name)
+                        if (targetFunctionEntry) {
+                            const targetFunction = targetFunctionEntry.properties.instance
+                            if (targetFunction) {
+                                if (typeof targetFunction === 'function') {
+                                    const token = new Token(node)
+                                    token.properties.instance = (...args) => {
+                                        return targetFunction(node.base.symbol, ...args)
+                                    }
+                                    node.identifier.symbol = token
+                                    node.symbol = token
+                                } else {
+                                    console.error(`${type}:${node.identifier.name} is not a function`)
+                                }
+                            } else {
+                                console.error(`${type}:${node.identifier.name} is undefined`)
+                            }
+                        } else {
+                            console.error(`type ${type} does not have a known member ${node.identifier.name}`)
+                        }
+                    } else {
+                        console.error(`type ${type} not found`)
+                    }
+                } else {
+                    console.error(`${node.base.text} has no type set, cannot resolve member ${node.identifier.text} to function`)
+                }
+                break
+        }
+    },
+    [NodeKind.IndexExpression]: function (node: IndexExpressionContainer, table: SymbolTable, curse): void {
+        visit(node.index, table, curse)
+        visit(node.base, table, curse)
+    },
+    [NodeKind.TableConstructorExpression]: function (node: TableConstructorExpressionContainer, table: SymbolTable, curse): void {
+        const symbol = new Token(node)
+        for (let i = 0; i < node.fields.length; i++) {
+            let field = node.fields[i];
+            switch (field.kind) {
+                case NodeKind.TableKey:
+                    throw new Error("Not implemented.")
+                    break;
+                case NodeKind.TableKeyString:
+                    throw new Error("Not implemented.")
+                    break;
+                case NodeKind.TableValue:
+                    throw new Error("Not implemented.")
+                    break;
+            }
+        }
+        node.symbol = symbol
+    },
+    [NodeKind.TableKey]: function (node: TableKeyContainer, table: SymbolTable, curse): void {
+    },
+    [NodeKind.TableKeyString]: function (node: TableKeyStringContainer, table: SymbolTable, curse): void {
+    },
+    [NodeKind.TableValue]: function (node: TableValueContainer, table: SymbolTable, curse): void {
+    },
+    [NodeKind.Comment]: function (node: CommentContainer): void {
+    },
+    [NodeKind.LabelStatement]: function (node: LabelStatementContainer): void {
+    },
+    [NodeKind.BreakStatement]: function (node: BreakStatementContainer): void {
+    },
+    [NodeKind.GotoStatement]: function (node: GotoStatementContainer): void {
     }
-    
 }
 
-export function entries<E>(obj: ObjectMap<E>): [string | number, E][] {
-    return Object.keys(obj).map(x => [x, obj[x]])
+export function visitTableBuilder2(program: Program) {
+    let curses: VoidFunction[] = []
+    visit(program.source, program.source.symbols, curse => {
+        curses.push(curse)
+    })
+    while (curses.length > 0) {
+        const curseNow = curses
+        curses = []
+        for (let voidFunction of curseNow) {
+            voidFunction()
+        }
+    }
+}
+
+function visit(node: Container, table: SymbolTable, curse: (curse: VoidFunction) => void) {
+    if (node.compilerOptions.parserOptions && node.compilerOptions.parserOptions.ignore.includes(node.kind)) {
+        return
+    }
+    tableVisitor[node.kind](node as never, table, curse)
 }

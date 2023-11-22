@@ -1,10 +1,12 @@
-import {ObjectMap} from "../table/symbol-table.js";
-import {entries} from "../table/table-builder.js";
+import {ObjectMap} from "./object-map.js";
+import {entries} from "./entries.js";
 
 export interface StringBuilder {
     println(...text: any[])
     
     printlnPad(depth: number, ...text: any[])
+    
+    printBypassIndent(text: string)
     
     print(...text: any[])
     
@@ -35,6 +37,9 @@ export function createStringBuilder(): StringBuilder {
     let text: string = ''
     let isHasColors = true
     return {
+        printBypassIndent(input: string) {
+            text += input.split('\n').map(x => x.trim()).join('\n') + '\n'
+        },
         table(entries: string[][], options) {
             let width = entries.reduce((p, c) => Math.max(p, c.length), 0)
             let columnWidths: number[] = new Array(width).fill(0)
@@ -115,7 +120,7 @@ export function createStringBuilder(): StringBuilder {
         },
         namedBlock(key: string, run: VoidFunction, style?: string) {
             this.println(key)
-            this.addIndent('  ')
+            this.addIndent((style ? style : '') + '  ')
             run()
             this.popIndent()
         },

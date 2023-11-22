@@ -1,16 +1,6 @@
 export enum LuaTiErrorCode {
-    Unspecified,
     NoSymbol,
     OverwriteSymbol,
-    DuplicateDeclarationAsParameter,
-    CallUndefinedSymbol,
     CannotAssignUndefinedSymbol,
     CannotAccessCompilerOptionsOfRootFile,
-    UnknownAnnotationDeclaration,
-    AnnotationTypeMismatch,
-    AnnotationError,
-    NoLabel,
-    NoStringCall,
-    NoTableCall,
-    PropertyXDoesNotExistOnTypeY,
 }

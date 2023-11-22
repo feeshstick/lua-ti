@@ -6,6 +6,7 @@ import {Scope} from "../../../scope.js";
 import {AbstractExpressionContainer} from "../abstract-expression-container.js";
 
 import {Container, createContainer, NodeKind} from "../../../container-types.js";
+import {SymbolTable} from "../../../../table/symbol-table.js";
 
 export type TableEntryContainer =
     | TableKeyContainer
@@ -15,6 +16,7 @@ export type TableEntryContainer =
 export class TableConstructorExpressionContainer extends AbstractExpressionContainer<NodeKind.TableConstructorExpression> {
     public readonly fields: Array<TableEntryContainer>
     public readonly kind = NodeKind.TableConstructorExpression
+    private _table: SymbolTable | undefined
     
     constructor(
         public readonly node: TableConstructorExpression,
@@ -28,6 +30,18 @@ export class TableConstructorExpressionContainer extends AbstractExpressionConta
             if (field.kind === NodeKind.TableValue) {
                 field.index = i + 1
             }
+        }
+    }
+    
+    setConstructorTable(table: SymbolTable){
+        this._table = table
+    }
+    
+    get table(): SymbolTable {
+        if (this._table) {
+            return this._table
+        } else {
+            throw new Error()
         }
     }
     

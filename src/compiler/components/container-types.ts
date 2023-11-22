@@ -1,5 +1,5 @@
 import {Base, Node, Statement} from "luaparse";
-import {BlockContainer} from "./nodes/meta/block-container.js";
+import {Block} from "./nodes/meta/block.js";
 import {IdentifierContainer} from "./nodes/expression/literal/identifier-container.js";
 import {StringLiteralContainer} from "./nodes/expression/literal/string-literal-container.js";
 import {NumericLiteralContainer} from "./nodes/expression/literal/numeric-literal-container.js";
@@ -38,11 +38,10 @@ import {TableKeyStringContainer} from "./nodes/expression/table/table-entry/tabl
 import {TableValueContainer} from "./nodes/expression/table/table-entry/table-value-container.js";
 import {CommentContainer} from "./nodes/trivia/comment-trivia-container.js";
 import {ChunkContainer} from "./nodes/meta/chunk-container.js";
-import {SourceFileContainer} from "./nodes/meta/source-file-container.js";
-import {CompilerOptions} from "../compiler-options/compiler-options.js";
+import {Program} from "./nodes/meta/program.js";
 
 export enum NodeKind {
-    SourceFile = "SourceFile",
+    Program = "Program",
     Chunk = "Chunk",
     Block = "Block",
     IfStatement = "IfStatement",
@@ -83,39 +82,28 @@ export enum NodeKind {
     Comment = "Comment",
 }
 
-export interface FileReference {
-    path: string
-    name: string
-    source: string
-    compilerOptions: CompilerOptions
-}
-
-export interface Block extends Base<'Block'> {
+export interface BlockNode extends Base<'Block'> {
     type: 'Block'
     statements: Statement[]
     range: [number, number]
 }
 
-export interface SourceFileNode extends Base<"SourceFile"> {
-    type: "SourceFile"
-    files: FileReference[]
+export interface ProgramNode extends Base<"Program"> {
+    type: "Program"
     range: [number, number]
 }
 
 export type ExtendedNode =
     | Node
-    | SourceFileNode
-    | Block
-
-export interface TypeDeclarationSourceFile extends FileReference {
-}
+    | ProgramNode
+    | BlockNode
 
 export type NodeRef<E> = E extends ExtendedNode['type'] ? Extract<ExtendedNode, {
     type: E
 }> : never
 
 export interface BlockStatement {
-    readonly block: BlockContainer
+    readonly block: Block
 }
 
 export type ParameterContainer = IdentifierContainer | VarargLiteralContainer
@@ -266,8 +254,45 @@ export type Container =
     | TableKeyStringContainer
     | TableValueContainer
     | CommentContainer
-    | SourceFileContainer
-    | BlockContainer
+    | Program
+    | Block
+
+export type ExpressionKind =
+    | NodeKind.Identifier
+    | NodeKind.StringLiteral
+    | NodeKind.NumericLiteral
+    | NodeKind.BooleanLiteral
+    | NodeKind.NilLiteral
+    | NodeKind.VarargLiteral
+    | NodeKind.TableConstructorExpression
+    | NodeKind.BinaryExpression
+    | NodeKind.LogicalExpression
+    | NodeKind.UnaryExpression
+    | NodeKind.MemberExpression
+    | NodeKind.IndexExpression
+    | NodeKind.CallExpression
+    | NodeKind.TableCallExpression
+    | NodeKind.StringCallExpression
+    | NodeKind.FunctionDeclaration
+
+export function isExpressionKind(kind: NodeKind): kind is ExpressionKind {
+    return kind === NodeKind.Identifier
+        || kind === NodeKind.StringLiteral
+        || kind === NodeKind.NumericLiteral
+        || kind === NodeKind.BooleanLiteral
+        || kind === NodeKind.NilLiteral
+        || kind === NodeKind.VarargLiteral
+        || kind === NodeKind.TableConstructorExpression
+        || kind === NodeKind.BinaryExpression
+        || kind === NodeKind.LogicalExpression
+        || kind === NodeKind.UnaryExpression
+        || kind === NodeKind.MemberExpression
+        || kind === NodeKind.IndexExpression
+        || kind === NodeKind.CallExpression
+        || kind === NodeKind.TableCallExpression
+        || kind === NodeKind.StringCallExpression
+        || kind === NodeKind.FunctionDeclaration
+}
 
 export enum BinaryExpressionOperator {
     add = "+",

@@ -2,11 +2,11 @@ import {ForNumericStatement} from "luaparse/lib/ast.js";
 import {BaseContainer} from "../../base-container.js";
 import {Scope} from "../../scope.js";
 import {BlockStatement, Container, createContainer, ExpressionContainer, NodeKind} from "../../container-types.js";
-import {BlockContainer} from "../meta/block-container.js";
+import {Block, ContainerFlag2} from "../meta/block.js";
 
 export class ForNumericStatementContainer extends BaseContainer<NodeKind.ForNumericStatement> implements BlockStatement {
     
-    public override readonly block: BlockContainer
+    public override readonly block: Block
     public readonly start: ExpressionContainer
     public readonly end: ExpressionContainer
     public readonly step: ExpressionContainer | null
@@ -16,7 +16,7 @@ export class ForNumericStatementContainer extends BaseContainer<NodeKind.ForNume
                 public readonly parent: Container,
                 scope: Scope) {
         super(scope);
-        this.block = Scope.createBody(this, node.body)
+        this.block = Scope.createBody(this, node.body, ContainerFlag2.ForScope)
         this.start = createContainer(node.start, this, this.scope) as ExpressionContainer
         this.end = createContainer(node.end, this, this.scope) as ExpressionContainer
         this.step = node.step ? createContainer(node.step, this, this.scope) as ExpressionContainer : null

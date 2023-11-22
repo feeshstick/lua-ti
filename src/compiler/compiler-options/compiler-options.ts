@@ -1,16 +1,12 @@
 import {NodeKind} from "../components/container-types.js";
 
 export interface CompilerOptions {
+    noDuplicateLocalDeclaration?: boolean;
+    noUndeclaredVariables?: boolean;
     noStringCall?: boolean;
     noLabel?: boolean
-    strict: boolean
-    fileFlag: 'declarations' | 'constants' | 'none'
+    noTableCall?: boolean
     parserOptions?: {
         ignore: NodeKind[]
     }
-    noTableCall?: boolean
-}
-
-export interface Project {
-    compilerOptions: CompilerOptions
 }
