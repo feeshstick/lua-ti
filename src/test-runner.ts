@@ -32,7 +32,7 @@ export function runSimpleTest() {
         compilerOptions: {},
         program: {
             path: 'test/basic',
-            file: 'GetID.lua',
+            file: 'get-id.lua',
             cardID: 123
         }
     })

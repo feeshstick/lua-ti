@@ -7,7 +7,6 @@ import {Block, ContainerFlag2} from "./block.js";
 import {CompilerOptions} from "../../../compiler-options/compiler-options.js";
 import {ChunkFlag} from "./chunk-flag.js";
 import {Program} from "./program.js";
-import {LuaTiDiagnostic} from "../../../error/lua-ti-diagnostic.js";
 import {ProgramDeclarationFile, ProgramFile} from "../../../../program-configuration.js";
 
 export interface ChunkContext extends ProgramFile {
