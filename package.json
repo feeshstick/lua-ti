@@ -47,6 +47,8 @@
     "node-html-parser": "^6.1.10",
     "ntypescript": "^1.201706190042.1",
     "pegjs": "^0.10.0",
+    "sqlite3": "^5.1.6",
+    "@types/sqlite3": "^3.1.11",
     "ts-morph": "^20.0.0"
   }
 }

@@ -18,6 +18,7 @@ export function runTest(): number {
                 noStringCall: true
             },
             program: {
+                type: 'file',
                 path: 'test/cases',
                 file: file,
                 cardID: 123
@@ -31,7 +32,8 @@ export function runSimpleTest() {
     const program = Program.build({
         compilerOptions: {},
         program: {
-            path: 'test/basic',
+            type: 'file',
+            path: 'test/coherence',
             file: 'get-id.lua',
             cardID: 123
         }

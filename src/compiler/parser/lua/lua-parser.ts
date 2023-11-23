@@ -10,6 +10,11 @@ export function parse(
     chunkContext: Omit<ChunkContext, 'source'>
 ) {
     const source = fs.readFileSync(chunkContext.path + '/' + chunkContext.file).toString('utf-8')
+    return parseSource(program, chunkContext, source)
+}
+
+export function parseSource(program: Program, chunkContext: Omit<ChunkContext, "source">, source: string) {
+    
     const commentGroups: Comment[][] = []
     let previousType: Node['type'] | undefined
     

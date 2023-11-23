@@ -23,6 +23,7 @@ To use lua-ti, follow these steps:
     - **Clone Repositories**: 
       - [ProjectIgnis/CardScripts](https://github.com/ProjectIgnis/CardScripts) `git clone git@github.com:ProjectIgnis/CardScripts.git`
       - [edo9300/ygopro-core](https://github.com/edo9300/ygopro-core) `git clone git@github.com:edo9300/ygopro-core.git`
+      - [ProjectIgnis/BabelCDB](https://github.com/ProjectIgnis/BabelCDB) `git clone git@github.com:ProjectIgnis/BabelCDB.git`
 - _wip_ **Configuration**: Modify the configuration file to suit project-specific settings.
 - _wip_ **Integration**: Integrate lua-ti into your CI/CD pipeline for automated checks on commits.
 

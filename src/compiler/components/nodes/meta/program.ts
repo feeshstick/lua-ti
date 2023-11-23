@@ -4,7 +4,7 @@ import {BaseContainer} from "../../base-container.js";
 import {ChunkContainer} from "./chunk-container.js";
 import {Scope} from "../../scope.js";
 import {ProgramConfiguration} from "../../../../program-configuration.js";
-import {parse} from "../../../parser/lua/lua-parser.js";
+import {parse, parseSource} from "../../../parser/lua/lua-parser.js";
 import {SymbolTable} from "../../../table/symbol-table.js";
 
 function chunkFlagFromKey(key: "constants" | "declarations" | "sources") {
@@ -38,14 +38,22 @@ export class Program extends BaseContainer<NodeKind.Program> {
             type: 'Program',
             range: [0, 0]
         }
-        this.source = parse(
-            this,
-            {
-                file: config.program.file,
-                path: config.program.path,
+        if (config.program.type === 'source') {
+            this.source = parseSource(this, {
+                file: `c${config.program.cardID}.lua`,
+                path: 'internal',
                 compilerOptions: config.compilerOptions
-            }
-        )
+            }, config.program.source)
+        } else {
+            this.source = parse(
+                this,
+                {
+                    file: config.program.file,
+                    path: config.program.path,
+                    compilerOptions: config.compilerOptions
+                }
+            )
+        }
     }
     
     override get symbols(): SymbolTable {
