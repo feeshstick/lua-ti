@@ -1,6 +1,8 @@
 import {Argument, Command} from "commander"
 import {runSimpleTest, runTest} from "./test-runner.js";
 import {WServer} from "./server/serve.js";
+import {buildAssets} from "./server/build-assets.js";
+import {buildDocumentationFromWiki} from "./server/build-documentation-assets.js";
 
 export function cli() {
     const program = new Command()
@@ -19,8 +21,15 @@ export function cli() {
     program.command('serve')
         .addArgument(new Argument('port', 'port'))
         .action(port => {
-            // Server.buildAssets()
             WServer.serve(port)
+        })
+    program.command('build-assets')
+        .action(() => {
+            buildAssets()
+        })
+    program.command('build-documentation')
+        .action(() => {
+            buildDocumentationFromWiki()
         })
     program.parse()
 }

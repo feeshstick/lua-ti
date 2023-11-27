@@ -13,29 +13,33 @@ export const CardEnvironment = {
         switch (type) {
             case Constants.EFFECT_TYPE_FIELD:
             case Constants.EFFECT_TYPE_SINGLE:
-                Token.typeGuard(data.condition).properties.typeGuide = [{
-                    type: 'function',
-                    parameter: (e, tp) => {
-                        e.symbol = new Token()
-                        e.symbol.properties.type = Type.Effect
-                        tp.symbol = new Token()
-                        tp.symbol.properties.type = Type.Card
-                    }
-                }]
-                visitDependencies(data.condition)
-                break;
-            case Constants.EFFECT_TYPE_ACTIVATE:
-                if(Token.isToken(data.condition)){
-                    data.condition.properties.typeGuide = [{
+                if(data.condition){
+                    Token.typeGuard(data.condition).properties.typeGuide = [{
                         type: 'function',
                         parameter: (e, tp) => {
                             e.symbol = new Token()
                             e.symbol.properties.type = Type.Effect
                             tp.symbol = new Token()
-                            tp.symbol.properties.instance = 0 // any number, sets this type to number
+                            tp.symbol.properties.type = Type.Card
                         }
                     }]
                     visitDependencies(data.condition)
+                }
+                break;
+            case Constants.EFFECT_TYPE_ACTIVATE:
+                if(data.condition){
+                    if(Token.isToken(data.condition)){
+                        data.condition.properties.typeGuide = [{
+                            type: 'function',
+                            parameter: (e, tp) => {
+                                e.symbol = new Token()
+                                e.symbol.properties.type = Type.Effect
+                                tp.symbol = new Token()
+                                tp.symbol.properties.instance = 0 // any number, sets this type to number
+                            }
+                        }]
+                        visitDependencies(data.condition)
+                    }
                 }
                 break;
             default:

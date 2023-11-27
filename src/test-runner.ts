@@ -34,7 +34,7 @@ export function runSimpleTest() {
         program: {
             type: 'file',
             path: 'test/coherence',
-            file: 'get-id.lua',
+            file: 'effect-function-used-twice.lua',
             cardID: 123
         }
     })
