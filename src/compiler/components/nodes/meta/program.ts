@@ -24,10 +24,11 @@ export class Program extends BaseContainer<NodeKind.Program> {
         return new Program(config)
     }
     
-    parent: Container | undefined;
+    public parent: Container | undefined;
     public readonly kind = NodeKind.Program
     public readonly source: ChunkContainer
     public readonly node: ProgramNode
+    public onError: Array<(message: string, ...data: any[]) => void> = []
     private readonly _table: SymbolTable = new SymbolTable()
     
     constructor(
@@ -56,11 +57,18 @@ export class Program extends BaseContainer<NodeKind.Program> {
         }
     }
     
+    override propagateError(message: string, ...data) {
+        for (let onErrorElement of this.onError) {
+            onErrorElement(message, ...data)
+        }
+    }
+    
     override get symbols(): SymbolTable {
         return this._table
     }
     
     forEachChild(node: (node: ChunkContainer) => void) {
+        node(this.source)
     }
     
 }

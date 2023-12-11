@@ -17,7 +17,6 @@ export class LuaTiError extends Error {
             console.log(errorPrettyPrint(data))
         }
         Object.setPrototypeOf(Error, LuaTiError.prototype)
-        console.log(this.cause)
     }
 }
 
@@ -46,7 +45,11 @@ export const LuaTiErrorHelper = {
         const path = node.chunk.context.path
         const file = node.chunk.context.file
         if (path) {
-            return 'file:///' + fs.realpathSync(path).replaceAll(/\\/gm, '/') + '/' + file + ':' + node.errLoc
+            if(fs.existsSync(path)){
+                return 'file:///' + fs.realpathSync(path).replaceAll(/\\/gm, '/') + '/' + file + ':' + node.errLoc
+            } else {
+                return node.errLoc
+            }
         } else {
             return node.errLoc
         }

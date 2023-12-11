@@ -8,7 +8,8 @@ import {Container, createContainer, NodeKind, ParameterContainer} from "../../co
 import {MemberExpressionContainer} from "./member-expression-container.js";
 
 import {Block, ContainerFlag2} from "../meta/block.js";
-import {SymbolAttribute} from "../../../table/symbol-table.js";
+import {SymbolAttribute, TypeGuide} from "../../../table/symbol-table.js";
+import {VoidFunction} from "../../../../utility/void-function.js";
 
 export class FunctionExpressionContainer extends AbstractExpressionContainer<NodeKind.FunctionDeclaration> {
     public readonly parameter: Array<ParameterContainer>
@@ -16,6 +17,7 @@ export class FunctionExpressionContainer extends AbstractExpressionContainer<Nod
     public readonly identifier: IdentifierContainer | MemberExpressionContainer | null
     public readonly kind = NodeKind.FunctionDeclaration;
     visitLater: VoidFunction | undefined;
+    bypassTypeGuideCheck: boolean = false
     
     constructor(
         public readonly node: FunctionDeclaration,

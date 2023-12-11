@@ -3,6 +3,10 @@ import {runSimpleTest, runTest} from "./test-runner.js";
 import {WServer} from "./server/serve.js";
 import {buildAssets} from "./server/build-assets.js";
 import {buildDocumentationFromWiki} from "./server/build-documentation-assets.js";
+import {buildConstants} from "./server/build-constants.js";
+import {buildFunctions} from "./server/build-functions.js";
+// @ts-ignore
+import {DEFAULT_OPTIONS} from "@that-hatter/scrapiyard";
 
 export function cli() {
     const program = new Command()
@@ -26,6 +30,19 @@ export function cli() {
     program.command('build-assets')
         .action(() => {
             buildAssets()
+        })
+    program.command('parser')
+        .action(async () => {
+            console.log(DEFAULT_OPTIONS)
+            // build2()
+        })
+    program.command('build-constants')
+        .action(() => {
+            buildConstants()
+        })
+    program.command('build-functions')
+        .action(() => {
+            buildFunctions()
         })
     program.command('build-documentation')
         .action(() => {

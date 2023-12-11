@@ -37,18 +37,22 @@ export abstract class AbstractExpressionContainer<E extends ExpressionContainerK
     set symbol(symbol: Token) {
         if (symbol) {
             if (this.__symbol) {
+                this.emitError(`overwriteSymbol`)
                 throw LuaTiErrorHelper.overwriteSymbol(this as ExpressionContainer, this.__symbol, symbol)
             } else {
+                symbol.addDeclaration(this as ExpressionContainer)
                 this.__symbol = symbol
             }
         } else {
             // Just in case; should be impossible.
+            this.emitError(`CannotAssignUndefinedSymbol`)
             throw LuaTiErrorHelper.CannotAssignUndefinedSymbol(this as ExpressionContainer)
         }
     }
     
     get symbol(): Token {
         if (!this.__symbol) {
+            this.emitError(`noSymbol`)
             throw LuaTiErrorHelper.noSymbol(this as ExpressionContainer)
         } else {
             return this.__symbol

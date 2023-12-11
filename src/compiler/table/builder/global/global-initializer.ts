@@ -1,15 +1,13 @@
-import {Program} from "../../components/nodes/meta/program.js";
-import {SymbolTable, Token} from "../symbol-table.js";
-import {createStringBuilder} from "../../utility/string-builder.js";
+import {Program} from "../../../components/nodes/meta/program.js";
+import {SymbolTable, Token} from "../../symbol-table.js";
+import {createStringBuilder} from "../../../utility/string-builder.js";
 import {createGlobalEnvironment} from "./global-environment.js";
-import {NodeKind} from "../../components/container-types.js";
+import {NodeKind} from "../../../components/container-types.js";
 
 export function globalInitializer(program: Program) {
     
     const global = program.symbols.global
     setEntries(global, createGlobalEnvironment(program))
-    const out = createStringBuilder()
-    global.getText(out)
     
     function setEntries(table: SymbolTable | Token, obj: any) {
         for (let key of Object.keys(obj)) {
@@ -17,7 +15,7 @@ export function globalInitializer(program: Program) {
         }
         
         function setEntry(key: string, objElement: any) {
-            const token = new Token()
+            const token = new Token(program.symbols.idProvider)
             table.enter(key, token)
             if (typeof objElement === 'object' && objElement) {
                 setEntries(token, objElement)
@@ -48,7 +46,7 @@ export function visitDependencies(token: Token) {
     //        alternatively: use different symbol tables based on that mask,
     //                       declared in function-expression-container
     //                       symbolic description: component.visitLater(new SymbolTable())
-    for (let component of token.declarations) {
+    for (let component of token.getDeclaration()) {
         if (component.kind === NodeKind.FunctionDeclaration && component.visitLater) {
             component.visitLater()
         }

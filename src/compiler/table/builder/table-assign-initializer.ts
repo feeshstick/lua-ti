@@ -1,7 +1,7 @@
-import {Program} from "../components/nodes/meta/program.js";
-import {NodeKind} from "../components/container-types.js";
-import {LocalStatementContainer} from "../components/nodes/statement/assign/local-statement-container.js";
-import {AssignmentStatementContainer} from "../components/nodes/statement/assign/assignment-statement-container.js";
+import {Program} from "../../components/nodes/meta/program.js";
+import {NodeKind} from "../../components/container-types.js";
+import {LocalStatementContainer} from "../../components/nodes/statement/assign/local-statement-container.js";
+import {AssignmentStatementContainer} from "../../components/nodes/statement/assign/assignment-statement-container.js";
 
 function assignExpressionsToToken(node: LocalStatementContainer | AssignmentStatementContainer) {
     const expressionStack = [...node.init]

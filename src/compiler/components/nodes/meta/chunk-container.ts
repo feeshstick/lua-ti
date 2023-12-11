@@ -1,13 +1,12 @@
 import {Chunk} from "luaparse/lib/ast.js";
 import {BaseContainer} from "../../base-container.js";
 import {Scope} from "../../scope.js";
-import {Container, NodeKind} from "../../container-types.js";
+import {NodeKind} from "../../container-types.js";
 
 import {Block, ContainerFlag2} from "./block.js";
 import {CompilerOptions} from "../../../compiler-options/compiler-options.js";
-import {ChunkFlag} from "./chunk-flag.js";
 import {Program} from "./program.js";
-import {ProgramDeclarationFile, ProgramFile} from "../../../../program-configuration.js";
+import {ProgramFile} from "../../../../program-configuration.js";
 
 export interface ChunkContext extends ProgramFile {
     source: string

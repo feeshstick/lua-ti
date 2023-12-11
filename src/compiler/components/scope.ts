@@ -6,12 +6,21 @@ import {Container} from "./container-types.js";
 
 export class Scope {
     readonly childScopes: [string | undefined, Container, Scope][] = []
+    public readonly idProvider: () => number;
     
     constructor(
         public readonly location?: Container,
         public readonly parent?: Scope,
         public readonly block?: Block,
     ) {
+        if (!this.parent) {
+            let number = 0
+            this.idProvider = () => {
+                return number++
+            }
+        } else {
+            this.idProvider = this.parent.idProvider!
+        }
     }
     
     static createBody(container: Container, statements: Statement[], flag: ContainerFlag2, name?: string) {

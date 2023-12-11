@@ -1,5 +1,6 @@
 import fs from "fs";
 import prettier from "prettier";
+import { VoidFunction } from "./void-function.js";
 
 export interface CppToLuaClass {
     name: string

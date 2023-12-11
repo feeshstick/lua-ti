@@ -1,77 +1,29 @@
 import fs from "fs";
 import sqlite3 from "sqlite3";
 import {WebSocketServer} from "ws";
-import {AssetMap, CardDirectory, CardID, Declaration, FunctionDeclaration, Range,} from "./build-assets.js";
 import {SectionEntry} from "./build-documentation-assets.js";
-
-export type CompilationPhase = 'parse' | 'global-initializer' | 'collect-assign-statements' | 'bind'
-
-function checkAssets() {
-    crawl('assets/CardScripts', (path, file) => {
-        if (file.endsWith('.lua')) {
-            console.log(path + '/' + file)
-        }
-    })
-}
-
-function crawl(dir: string, consumer: (path: string, file: string) => void) {
-    for (let string of fs.readdirSync(dir)) {
-        const path = dir + '/' + string
-        if (fs.lstatSync(path).isFile()) {
-            consumer(path, string)
-        } else {
-            crawl(dir + '/' + string, consumer)
-        }
-    }
-}
-
-export interface Request {
-    path: string
-    id: string
-    args: any[]
-}
-
-export interface Response<E> {
-    request: Request
-    data: E
-}
-
-type RequestProcessor<E> = (...args: any) => Promise<Response<E>['data']>
-
-type RequestProcessorEntry = {
-    [key: string]: RequestProcessorEntry | RequestProcessor<any>
-}
-
-export interface CardInfo {
-    id: number
-    name: string
-    desc: string
-    str: string[]
-    flag?: 'Pre-Errata' | 'Anime' | 'VG' | 'TFG' | 'Manga'
-    alias: number
-    setcode: number
-    type: number
-    atk: number
-    def: number
-    level: number
-    attribute: number
-    category: number
-    declarations?: {
-        declaration: Declaration
-        ranges: Range[]
-    }[]
-    source?: string
-}
-
-export interface GetCardConfig {
-    getSourceCode?: boolean
-    getDeclarations?: boolean
-}
-
-export interface GetAllCardsConfig {
-    pageIndex: number
-    pageSize: number
-}
+import {ProgramConfiguration} from "../program-configuration.js";
+import {Program} from "../compiler/components/nodes/meta/program.js";
+import {globalInitializer} from "../compiler/table/builder/global/global-initializer.js";
+import {collectAssignStatements} from "../compiler/table/builder/table-assign-initializer.js";
+import {visitTableBuilder} from "../compiler/table/builder/table-builder.js";
+import {getSymbolCoverage, getSymbolTable} from "../utility/print-object.js";
+import {
+    AssetMap,
+    CardDirectory,
+    CardID,
+    CompilerResult,
+    Declaration,
+    FunctionDeclaration,
+    GetAllCardsConfig,
+    GetCardConfig,
+    Range,
+    Request,
+    RequestProcessor,
+    RequestProcessorEntry,
+    Response
+} from "../compiler/shared/share.js";
+import {VoidFunction} from "../utility/void-function.js";
 
 export namespace WServer {
     
@@ -110,6 +62,48 @@ export namespace WServer {
         }
         
         const requestProcessor: RequestProcessorEntry = {
+            debug: {
+                compile: (config: ProgramConfiguration) => {
+                    console.log('compile')
+                    return new Promise(resolve => {
+                        const errorStack: [string, ...any[]][] = []
+                        let program: Program | undefined
+                        try {
+                            program = new Program(config)
+                            program.onError.push((message, ...data) => {
+                                console.log('ERR MESSAGE', message, ...data)
+                                errorStack.push([message, ...data])
+                            })
+                            try {
+                                globalInitializer(program!)
+                            } catch (e) {
+                                console.error('ERROR',e)
+                                errorStack.push(['error globalInitializer', e])
+                            }
+                            try {
+                                collectAssignStatements(program!)
+                            } catch (e) {
+                                console.error('ERROR',e)
+                                errorStack.push(['error collectAssignStatements', e])
+                            }
+                            try {
+                                visitTableBuilder(program!)
+                            } catch (e) {
+                                console.error('ERROR',e)
+                                errorStack.push(['error visitTableBuilder', e])
+                            }
+                        } catch (e) {
+                            console.error('ERROR',e)
+                            errorStack.push(['error Program', e])
+                        }
+                        resolve({
+                            errors: errorStack,
+                            coverage: program ? getSymbolCoverage(program) : undefined,
+                            symbols: program ? getSymbolTable(program.symbols) : undefined
+                        } as CompilerResult)
+                    })
+                }
+            },
             usage: (entry: SectionEntry) => {
                 return new Promise(resolve => {
                 })
@@ -294,56 +288,4 @@ export namespace WServer {
         return value;
     }
     
-    // function runCompilation(message: CompileRequest): CompileResponse {
-    //     let program: Program
-    //     let phase: CompilationPhase = 'parse'
-    //     let err = false
-    //     const errors: Error[] = []
-    //     try {
-    //         phase = 'parse'
-    //         program = new Program({
-    //             program: {
-    //                 type: 'source',
-    //                 source: message.source,
-    //                 cardID: message.cardID
-    //             },
-    //             compilerOptions: {}
-    //         })
-    //     } catch (e) {
-    //         err = true
-    //         errors.push(e as Error)
-    //     }
-    //     if (program!) {
-    //         try {
-    //             phase = 'global-initializer'
-    //             globalInitializer(program)
-    //         } catch (e) {
-    //             err = true
-    //             errors.push(e as Error)
-    //         }
-    //         if (!err) {
-    //             try {
-    //                 phase = 'collect-assign-statements'
-    //                 collectAssignStatements(program)
-    //             } catch (e) {
-    //                 err = true
-    //                 errors.push(e as Error)
-    //             }
-    //         }
-    //         if (!err) {
-    //             try {
-    //                 phase = 'bind'
-    //                 visitTableBuilder2(program)
-    //             } catch (e) {
-    //                 err = true
-    //                 errors.push(e as Error)
-    //             }
-    //         }
-    //     }
-    //     return {
-    //         request: message,
-    //         errors: errors.map(x => x.message),
-    //         phase: phase
-    //     }
-    // }
 }

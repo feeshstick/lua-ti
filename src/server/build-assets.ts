@@ -1,6 +1,8 @@
 import fs from "fs";
 import luaparse, {Node} from "luaparse";
 import {Chunk} from "luaparse/lib/ast.js";
+import {Asset, AssetMap, Declaration, FunctionDeclaration, VariableDeclaration} from "../compiler/shared/share.js";
+import {Tree} from "../utility/tree.js";
 
 export const DEFAULT_LUA_PARSE_OPTIONS: Partial<luaparse.Options> = {
     locations: true,
@@ -8,51 +10,6 @@ export const DEFAULT_LUA_PARSE_OPTIONS: Partial<luaparse.Options> = {
     comments: true,
     luaVersion: '5.3',
     ranges: true
-}
-
-export type Tree<E> = Map<string, Tree<E>> | E
-export type DeclarationType = 'variable' | 'function'
-export type Range = [number, number]
-export type CardID = number
-export type DeclarationID = number
-export type CardDirectory =
-    | 'official'
-    | 'unofficial'
-export type AbstractDeclaration<E extends DeclarationType> = {
-    type: E
-    id: DeclarationID
-    location: {
-        [A in CardDirectory]: [CardID, Range[]][]
-    }
-}
-
-export interface VariableDeclaration extends AbstractDeclaration<'variable'> {
-    name: string
-    path: string
-    file: string
-    isLocal: boolean
-    nameList: string[]
-}
-
-export interface FunctionDeclaration extends AbstractDeclaration<'function'> {
-    name: string
-    nameList: string[]
-    path: string
-    file: string
-    parameter: {
-        name: string
-    }[]
-    isLocal: boolean
-}
-
-export type Declaration = VariableDeclaration | FunctionDeclaration
-export type AssetMap = Tree<Asset>
-
-export type Asset = {
-    type: 'asset',
-    path: string
-    name: string
-    declarations: Tree<Declaration>
 }
 
 export function buildAssets() {

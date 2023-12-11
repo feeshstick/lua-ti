@@ -1,0 +1,1 @@
+export type Tree<E> = Map<string, Tree<E>> | E

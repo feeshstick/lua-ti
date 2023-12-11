@@ -1,5 +1,6 @@
 import {ObjectMap} from "./object-map.js";
 import {entries} from "./entries.js";
+import {VoidFunction} from "../../utility/void-function.js";
 
 export interface StringBuilder {
     println(...text: any[])

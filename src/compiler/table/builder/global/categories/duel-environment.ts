@@ -1,4 +1,4 @@
-import {Token} from "../../symbol-table.js";
+import {Token} from "../../../symbol-table.js";
 
 export const DuelEnvironment = {
     GetFieldGroupCount: GetFieldGroupCount

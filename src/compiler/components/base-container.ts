@@ -1,5 +1,13 @@
 import {Scope} from "./scope.js";
-import {Container, createContainer, ExtendedNode, isExpressionKind, NodeKind, NodeRef} from "./container-types.js";
+import {
+    Container,
+    createContainer,
+    ExtendedNode,
+    isExpressionKind,
+    NodeKind,
+    NodeRef,
+    StatementContainer
+} from "./container-types.js";
 
 import {Block} from "./nodes/meta/block.js";
 import {ChunkContainer} from "./nodes/meta/chunk-container.js";
@@ -16,7 +24,7 @@ export abstract class AbstractContainer<T> {
     protected constructor(
         public readonly scope: Scope
     ) {
-        this.id = BaseContainer.idCounter++
+        this.id = scope.idProvider()
     }
 }
 
@@ -41,6 +49,17 @@ export abstract class BaseContainer<NKind extends NodeKind> extends AbstractCont
                 this.comments.push(commentContainer)
                 commentContainer.onInit()
             }
+        }
+    }
+    
+    emitError(message: string, ...data: any[]) {
+        console.error(message, ...data)
+        this.propagateError(message, ...data)
+    }
+    
+    propagateError(message: string, ...data: any[]) {
+        if (this.parent) {
+            this.parent.propagateError(message, ...[...data, `kind=${this.kind} id=${this.id} location=[${this.range.join(',')}]`])
         }
     }
     
@@ -83,11 +102,11 @@ export abstract class BaseContainer<NKind extends NodeKind> extends AbstractCont
         return this.parent!.getTextFromRange(range)
     }
     
-    searchUpperStatement(): Container | undefined {
+    searchUpperStatement(): StatementContainer | undefined {
         if (isExpressionKind(this.kind)) {
             return this.parent?.searchUpperStatement()
         } else {
-            return this as unknown as Container
+            return this as unknown as StatementContainer
         }
     }
     
@@ -257,22 +276,36 @@ export function forEachChild<E>(container: Container, consumer: (node: Container
     return undefined
 }
 
-export function forEachChildExtended<E>(container: Container, consumer: (node: Container, key: string, index: number, depth: number) => E, depth: number = 0): E | undefined {
+export function forEachChildExtended<E>(container: Container, consumer: (node: Container, key: string, index: number) => E): E | undefined {
     function visit<A extends E>(node: Container | Container[] | undefined | null, key: string): E {
         if (node) {
             if (node instanceof Array) {
-                let result: E | undefined = undefined
+                let ret: E | undefined
                 for (let i = 0; i < node.length; i++) {
-                    let nodeElement = node[i];
-                    result ||= consumer(nodeElement, key, i, depth) || forEachChildExtended(nodeElement, consumer, depth + 1) as E
+                    let element = node[i];
+                    ret ||= consumer(element, key, i)
                 }
-                return result! as E
+                return ret as E
             } else {
-                return consumer(node, key, 0, depth) || forEachChildExtended(node, consumer, depth + 1) as E
+                return consumer(node, key, -1)
             }
         } else {
             return undefined as E
         }
+        // if (node) {
+        //     if (node instanceof Array) {
+        //         let result: E | undefined = undefined
+        //         for (let i = 0; i < node.length; i++) {
+        //             let nodeElement = node[i];
+        //             result ||= consumer(nodeElement, key, i, depth) || forEachChildExtended(nodeElement, consumer, depth + 1) as E
+        //         }
+        //         return result! as E
+        //     } else {
+        //         return consumer(node, key, 0, depth) || forEachChildExtended(node, consumer, depth + 1) as E
+        //     }
+        // } else {
+        //     return undefined as E
+        // }
     }
     
     switch (container.kind) {

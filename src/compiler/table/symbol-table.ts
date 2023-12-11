@@ -6,6 +6,14 @@ import {VariableContainer} from "../components/nodes/expression/variable-contain
 import {AssignContainer} from "../components/nodes/statement/assign/assign-container.js";
 import chalk from "chalk";
 import * as util from "util";
+import {
+    ReducedInstance,
+    ReducedReference,
+    ReducedSymbolTable,
+    ReducedToken,
+    ReducedTypeGuide
+} from "../shared/share.js";
+import prettier from "prettier";
 
 
 export enum SymbolAttribute {
@@ -17,7 +25,6 @@ export enum SymbolAttribute {
 }
 
 export abstract class AbstractTable {
-    private static tid_c: number = 0
     public readonly tid: number
     
     public attribute: SymbolAttribute = SymbolAttribute.Undefined
@@ -26,8 +33,10 @@ export abstract class AbstractTable {
     
     public abstract readonly parent?: Token | SymbolTable
     
-    protected constructor() {
-        this.tid = AbstractTable.tid_c++
+    protected constructor(
+        public readonly idProvider: () => number
+    ) {
+        this.tid = idProvider()
     }
     
     lookup(name: string): Token | undefined {
@@ -66,6 +75,110 @@ export type TypeGuide =
 
 export class Token extends AbstractTable {
     
+    private static reduceInstance(instance: any, typeContext: string | undefined, reductionContext: Set<number>): ReducedInstance {
+        switch (typeof instance) {
+            case "undefined":
+                return {
+                    kind: 'undefined',
+                    value: undefined
+                }
+            case "object":
+                if (instance) {
+                    if (instance instanceof Array) {
+                        return {
+                            kind: 'array',
+                            list: instance.map(item => this.reduceInstance(item, typeContext, reductionContext))
+                        }
+                    } else if (instance instanceof Token) {
+                        return {
+                            kind: 'symbol',
+                            symbol: instance.reduce(reductionContext)
+                        }
+                    } else {
+                        return {
+                            kind: 'object',
+                            entries: Object.entries(instance).map(([key, value]) => {
+                                return {
+                                    key: key,
+                                    value: this.reduceInstance(value, typeContext, reductionContext)
+                                }
+                            })
+                        }
+                    }
+                } else {
+                    return {
+                        kind: 'null',
+                        value: null
+                    }
+                }
+            case "boolean":
+                return {
+                    kind: 'boolean',
+                    value: instance
+                }
+            case "number":
+                return {
+                    kind: 'number',
+                    value: instance
+                }
+            case "string":
+                return {
+                    kind: 'string',
+                    value: instance
+                }
+            case "function": {
+                let string = instance.toString() as string
+                if (string.startsWith('function')) {
+                    string = prettier.format(string, {
+                        parser: 'babel'
+                    })
+                } else if (/^\w+/gm.exec(string)) {
+                    string = prettier.format('function ' + string, {
+                        parser: 'babel'
+                    })
+                } else if (string.includes('=>')) {
+                    string = prettier.format(' (' + string + ')', {
+                        parser: 'babel'
+                    })
+                }
+                return {
+                    kind: 'function',
+                    value: string
+                }
+            }
+            case "symbol":
+            case "bigint":
+                throw new Error()
+        }
+    }
+    
+    private static reduceTypeGuide(typeGuide: TypeGuide[]): ReducedTypeGuide {
+        const reduction: ReducedTypeGuide = {
+            type: 'list',
+            elements: []
+        }
+        for (let element of typeGuide) {
+            reduction.elements.push(_reduceTypeGuide(element))
+        }
+        
+        return reduction
+        
+        function _reduceTypeGuide(element: TypeGuide): ReducedTypeGuide {
+            if (element instanceof Array) {
+                return {
+                    type: 'member',
+                    name: element[0],
+                    member: _reduceTypeGuide(element[1])
+                }
+            } else {
+                return {
+                    type: 'function',
+                    parameter: element.parameter.toString()
+                }
+            }
+        }
+    }
+    
     static typeGuard(obj: any): Token {
         if (obj instanceof Token) {
             return obj
@@ -83,20 +196,72 @@ export class Token extends AbstractTable {
     }
     
     private _parent: Token | SymbolTable | undefined
-    public readonly declarations: Container[]
+    private readonly declarations: Container[]
+    
     public table: SymbolTable | undefined
+    
     public readonly properties: {
         typeGuide?: TypeGuide[]
         immutable?: boolean
         instance?: any
         type?: string
+        nullCheck?: boolean
+        typeByUsage?: Set<string>
     } = {}
     
     constructor(
+        idProvider: () => number,
         ...declarations: Container[]
     ) {
-        super()
+        super(idProvider)
         this.declarations = declarations
+    }
+    
+    addDeclaration(container: Container) {
+        if (this.declarations.filter(x => x.id === container.id).length == 0) {
+            this.declarations.push(container)
+        }
+    }
+    
+    getDeclaration(): ReadonlyArray<Container> {
+        return this.declarations
+    }
+    
+    reduce(reductionContext: Set<number>): ReducedToken | ReducedReference {
+        if (reductionContext.has(this.tid)) {
+            return {
+                type: 'reference',
+                reference: this.tid
+            }
+        } else {
+            reductionContext.add(this.tid)
+            return {
+                type: 'token',
+                tid: this.tid,
+                properties: {
+                    typeGuide: this.properties.typeGuide
+                        ? Token.reduceTypeGuide(this.properties.typeGuide)
+                        : undefined,
+                    immutable: !!this.properties.immutable,
+                    instance: typeof this.properties.instance !== 'undefined'
+                        ? Token.reduceInstance(this.properties.instance, this.properties.type, reductionContext)
+                        : undefined,
+                    type: this.properties.type,
+                    typeByUsage: Array.from((this.properties.typeByUsage || new Set()).values())
+                },
+                declarations: this.declarations.map(x => x.id),
+                token: Array.from(this.entries).map(([key, value]) => {
+                    return {
+                        key: key,
+                        value: value.reduce(reductionContext)
+                    }
+                })
+            }
+        }
+    }
+    
+    createEmpty(): Token {
+        return new Token(this.idProvider)
     }
     
     override enter(name: string, symbol: Token): Token {
@@ -166,13 +331,6 @@ export class Token extends AbstractTable {
                 }
                 if (this.properties.type) out.println(`└ type`, this.properties.type)
                 if (this.properties.typeGuide) {
-                    // JSON.stringify(this.properties.typeGuide, (key, value) => {
-                    //     if (typeof value === 'function') {
-                    //         return value.toString().replace(/\s+/gm, ' ')
-                    //     } else {
-                    //         return value
-                    //     }
-                    // })
                     out.println('└ type-guide', util.inspect(this.properties.typeGuide, {
                         colors: true,
                         compact: true,
@@ -217,25 +375,74 @@ export class Token extends AbstractTable {
         }
         this.properties.instance = obj
     }
+    
+    emitError(message: string, ...data: any[]) {
+        if (this.declarations.length > 0) {
+            this.declarations[this.declarations.length - 1].emitError(message, ...[...data, 'token=' + this.tid])
+        } else if (this.parent) {
+            this.parent.emitError(message, ...[...data, 'token=' + this.tid])
+        } else {
+            console.error('no err-path found')
+        }
+    }
 }
 
 export class SymbolTable extends AbstractTable {
+    private static createIdProvider(): () => number {
+        let currentId = 0
+        return () => {
+            return currentId++
+        }
+    }
+    
     private readonly _escapeReturnList: ReturnStatementContainer[] = []
     private readonly _escapeExitList: ReturnStatementContainer[] = []
     private readonly _children: [Container, SymbolTable][] = []
+    
     private readonly _assignments: [AssignContainer, VariableContainer[], ExpressionContainer][] = []
     
     constructor(
         public readonly parent?: SymbolTable,
-        public readonly declaration?: Container
+        public readonly declaration?: Container,
     ) {
-        super()
+        super(parent?.idProvider || SymbolTable.createIdProvider())
+    }
+    
+    reduce(reductionContext: Set<number>): ReducedSymbolTable | ReducedReference {
+        if (reductionContext.has(this.tid)) {
+            return {
+                type: 'reference',
+                reference: this.tid
+            }
+        } else {
+            reductionContext.add(this.tid)
+            return {
+                type: 'table',
+                tid: this.tid,
+                container: this.declaration ? this.declaration.id : undefined,
+                token: Array.from(this.entries).map(([key, value]) => {
+                    return {
+                        key: key,
+                        value: value.reduce(reductionContext)
+                    }
+                }),
+                table: this._children.map(([, table]) => {
+                    return table.reduce(reductionContext)
+                })
+            }
+        }
     }
     
     create(container: Container): SymbolTable {
         const child = new SymbolTable(this, container)
         this._children.push([container, child])
         return child
+    }
+    
+    emitError(message: string, ...data: any[]) {
+        if (this.declaration) {
+            this.declaration.emitError(message, ...[...data, 'symbol-table=' + this.tid])
+        }
     }
     
     get global(): SymbolTable {
@@ -257,7 +464,7 @@ export class SymbolTable extends AbstractTable {
     }
     
     asSymbol(): Token {
-        const symbol = new Token()
+        const symbol = new Token(this.idProvider)
         symbol.setEntries(this.entries)
         return symbol
     }
@@ -288,7 +495,7 @@ export class SymbolTable extends AbstractTable {
             if (this._assignments.length > 0) {
                 out.namedBlock('assignments', () => {
                     for (let i = 0; i < this._assignments.length; i++) {
-                        let [assignContainer, variables, expression] = this._assignments[i];
+                        let [assignContainer, variables, expression] = this._assignments[i]
                         if (variables.length === 1) {
                             out.println(i, variables[0].text + ' = ' + expression.text)
                         } else {
@@ -337,6 +544,14 @@ export class SymbolTable extends AbstractTable {
             if (this.has(key)) {
                 this.lookup(key)!.setInstances(Env[key])
             }
+        }
+    }
+    
+    createToken(container?: Container) {
+        if (container) {
+            return new Token(this.idProvider, container)
+        } else {
+            return new Token(this.idProvider)
         }
     }
 }
